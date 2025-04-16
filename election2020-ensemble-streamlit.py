@@ -227,7 +227,7 @@ def main():
                                        .str.contains("USA", na=False)]
 
         # Combine DFs with "US" country, and those with no country but US locations.
-        user_USAonly = pd.concat([tweets_cntryUSA, user_states, user_stateUSA]) 
+        # user_USAonly = pd.concat([tweets_cntryUSA, user_states, user_stateUSA]) 
         user_USAonly = user_USAonly.reset_index(drop=True)
 
         # Make sure to fill null 'country' fields with "US"
@@ -245,10 +245,10 @@ def main():
         user_USAsample = user_USAonly.sample(frac=(samplesize/100), random_state=42)
 
         st.write("### Sampled Merged Data Preview")
-        st.dataframe(user_USAsample.sample(10))
+        st.dataframe(user_USAonly.sample(10))
 
         # Convert pandas DataFrame into Hugging Face Dataset
-        tweetUSA_dataset = Dataset.from_pandas(user_USAsample)
+        tweetUSA_dataset = Dataset.from_pandas(user_USAonly.sample(frac=(samplesize/100), random_state=42))
 
         if st.button("Run Sentiment Analysis"):
             with st.spinner("Loading models and running sentiment analysis..."):
@@ -262,7 +262,6 @@ def main():
                             )
             st.success("Analysis complete!")
             st.write("### Sentiment Analysis Results")
-            # st.dataframe(result_df.head())
 
             # Convert back to pandas DataFrame for data analysis
             tweetUSA_sentiments_showmodels = result_dataset_showmodels.to_pandas()
@@ -270,7 +269,6 @@ def main():
             # Remove any rows that were previously judged as neutral, now None or NaN
             tweetUSA_sentiments_modelsclean = tweetUSA_sentiments_showmodels\
                 .dropna(subset=['ensemble_score'])
-
 
             # Provide download option for the results
             csv_result = tweetUSA_sentiments_modelsclean.to_csv(index=False).encode("utf-8")
