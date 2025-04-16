@@ -171,41 +171,41 @@ def main():
     
     usesample = st.checkbox("Use included sample data?")
 
-    if usesample:
-        # Reading Trump Dataset 
-        cand1_df = pd.read_csv("input/hashtag_bidensamp.csv", lineterminator='\n')
-        candidate1_name = 'biden'
+    if st.button("Load Data"):
+        if usesample:
+            # Reading Trump Dataset 
+            cand1_df = pd.read_csv("input/hashtag_bidensamp.csv", lineterminator='\n')
+            candidate1_name = 'biden'
 
-        # Reading Biden Dataset 
-        cand2_df = pd.read_csv("input/hashtag_trumpsamp.csv", lineterminator='\n') 
-        candidate2_name = 'trump'
+            # Reading Biden Dataset 
+            cand2_df = pd.read_csv("input/hashtag_trumpsamp.csv", lineterminator='\n') 
+            candidate2_name = 'trump'
    
-    else:
-
-        # Layout for two file uploaders and candidate name inputs
-        col1, col2 = st.columns(2)
-
-        with col1:
-            candidate1_file = st.file_uploader("Upload CSV for Candidate 1", type="csv", key="candidate1_file")
-            candidate1_name = st.text_input("Candidate 1 Name", key="candidate1_name")
-        with col2:
-            candidate2_file = st.file_uploader("Upload CSV for Candidate 2", type="csv", key="candidate2_file")
-            candidate2_name = st.text_input("Candidate 2 Name", key="candidate2_name")
-
-        if candidate1_file and candidate2_file and candidate1_name and candidate2_name:
-            try:
-                cand1_df = pd.read_csv(candidate1_file, index_col=0)
-                cand2_df = pd.read_csv(candidate2_file, index_col=0)
-            except Exception as e:
-                st.error(f"Error reading one of the CSV files: {e}")
-                return
-            
-            # Validate that each dataframe has a 'tweet' column
-            if "tweet" not in cand1_df.columns or "tweet" not in cand2_df.columns:
-                st.error("Both CSV files must contain a 'tweet' column.")
-                return
         else:
-            st.info("Please upload CSV files and provide names for both candidates.")
+            # Layout for two file uploaders and candidate name inputs
+            col1, col2 = st.columns(2)
+
+            with col1:
+                candidate1_file = st.file_uploader("Upload CSV for Candidate 1", type="csv", key="candidate1_file")
+                candidate1_name = st.text_input("Candidate 1 Name", key="candidate1_name")
+            with col2:
+                candidate2_file = st.file_uploader("Upload CSV for Candidate 2", type="csv", key="candidate2_file")
+                candidate2_name = st.text_input("Candidate 2 Name", key="candidate2_name")
+
+            if candidate1_file and candidate2_file and candidate1_name and candidate2_name:
+                try:
+                    cand1_df = pd.read_csv(candidate1_file, index_col=0)
+                    cand2_df = pd.read_csv(candidate2_file, index_col=0)
+                except Exception as e:
+                    st.error(f"Error reading one of the CSV files: {e}")
+                    return
+                
+                # Validate that each dataframe has a 'tweet' column
+                if "tweet" not in cand1_df.columns or "tweet" not in cand2_df.columns:
+                    st.error("Both CSV files must contain a 'tweet' column.")
+                    return
+            else:
+                st.info("Please upload CSV files and provide names for both candidates.")
 
     # Assign candidate names
     cand1_df['candidate'] = candidate1_name
