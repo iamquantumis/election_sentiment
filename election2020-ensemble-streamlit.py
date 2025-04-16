@@ -227,8 +227,9 @@ def main():
                                        .str.contains("USA", na=False)]
 
         # Combine DFs with "US" country, and those with no country but US locations.
-        user_USAonly = pd.concat([tweets_cntryUSA, user_states, user_stateUSA]) 
-        user_USAonly = user_USAonly.reset_index(drop=True)
+        user_USAonly = pd.concat([tweets_cntryUSA, 
+                                  user_states, 
+                                  user_stateUSA].reset_index(drop=True))
 
         # Make sure to fill null 'country' fields with "US"
         user_USAonly['country'] = user_USAonly['country'].fillna(value="US")
@@ -242,7 +243,7 @@ def main():
             st.error("Value must be between 1 and 100 inclusive.")
             return
         
-        user_USAsample = user_USAonly.sample(frac=(samplesize/100), random_state=42)
+        # user_USAsample = user_USAonly.sample(frac=(samplesize/100), random_state=42)
 
         st.write("### Sampled Merged Data Preview")
         st.dataframe(user_USAonly.sample(10))
