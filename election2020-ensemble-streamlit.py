@@ -210,63 +210,64 @@ def main():
             else:
                 st.info("Please upload CSV files and provide names for both candidates.")
 
-    # Assign candidate names
-    cand1_df['candidate'] = candidate1_name
-    cand2_df['candidate'] = candidate2_name
+    if st.button("Clean Data"):
+        # Assign candidate names
+        cand1_df['candidate'] = candidate1_name
+        cand2_df['candidate'] = candidate2_name
 
-    # Merge the two dataframes
-    merged_df = pd.concat([cand1_df, cand2_df]).reset_index(drop=True)
+        # Merge the two dataframes
+        merged_df = pd.concat([cand1_df, cand2_df]).reset_index(drop=True)
 
-    # Shorten any United States (/of America) to simply "US"
-    merged_df['country'] = merged_df['country'].replace({'United States of America': "US",'United States': "US"}) 
+        # Shorten any United States (/of America) to simply "US"
+        merged_df['country'] = merged_df['country'].replace({'United States of America': "US",'United States': "US"}) 
 
-    # Isolate tweets where `country` is "US"
-    tweets_cntryUSA = merged_df[merged_df["country"] == "US"]
+        # Isolate tweets where `country` is "US"
+        tweets_cntryUSA = merged_df[merged_df["country"] == "US"]
 
-    # Check to see where user_location is available, but no country specified
-    tweets_loconly = merged_df[merged_df['country'].isnull() & 
-                                merged_df['user_location'].notnull()]
-    
-    # Provide list of US State abbreviations to parse user_location
-    statelist = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', 'GA', 
-                'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 
-                'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 
-                'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 
-                'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'USA']
-    
-    # Filter the rows that have country as null but location as filled for those
-    # that have the last two characters matching a State abbreviation
-    user_states = tweets_loconly[tweets_loconly['user_location']\
-                                    .str[-2:].isin(statelist)]
-    
-    # Check if user_location indicates "USA" if no state abbreviation at the end
-    user_stateUSA = tweets_loconly[tweets_loconly['user_location']\
-                                    .str.contains("USA", na=False)]
+        # Check to see where user_location is available, but no country specified
+        tweets_loconly = merged_df[merged_df['country'].isnull() & 
+                                    merged_df['user_location'].notnull()]
+        
+        # Provide list of US State abbreviations to parse user_location
+        statelist = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', 'GA', 
+                    'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 
+                    'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 
+                    'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 
+                    'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'USA']
+        
+        # Filter the rows that have country as null but location as filled for those
+        # that have the last two characters matching a State abbreviation
+        user_states = tweets_loconly[tweets_loconly['user_location']\
+                                        .str[-2:].isin(statelist)]
+        
+        # Check if user_location indicates "USA" if no state abbreviation at the end
+        user_stateUSA = tweets_loconly[tweets_loconly['user_location']\
+                                        .str.contains("USA", na=False)]
 
-    # Combine DFs with "US" country, and those with no country but US locations.
-    user_USAonly = pd.concat([tweets_cntryUSA, 
-                                user_states, 
-                                user_stateUSA]).reset_index(drop=True)
+        # Combine DFs with "US" country, and those with no country but US locations.
+        user_USAonly = pd.concat([tweets_cntryUSA, 
+                                    user_states, 
+                                    user_stateUSA]).reset_index(drop=True)
 
-    # Make sure to fill null 'country' fields with "US"
-    user_USAonly['country'] = user_USAonly['country'].fillna(value="US")
+        # Make sure to fill null 'country' fields with "US"
+        user_USAonly['country'] = user_USAonly['country'].fillna(value="US")
 
-    # Create cleaned tweets column
-    user_USAonly['cleaned_tweets'] = user_USAonly['tweet'].apply(clean_tweet)
+        # Create cleaned tweets column
+        user_USAonly['cleaned_tweets'] = user_USAonly['tweet'].apply(clean_tweet)
 
-    # Have option to take only sample of data (runs faster)
-    samplesize = st.number_input("Data Sample Size Percent (100 = full dataset)", key="samplesize")
-    if samplesize < 1 or samplesize > 100:
-        st.error("Value must be between 1 and 100 inclusive.")
-        return
-    
-    # user_USAsample = user_USAonly.sample(frac=(samplesize/100), random_state=42)
+        # Have option to take only sample of data (runs faster)
+        samplesize = st.number_input("Data Sample Size Percent (100 = full dataset)", key="samplesize")
+        if samplesize < 1 or samplesize > 100:
+            st.error("Value must be between 1 and 100 inclusive.")
+            return
+        
+        # user_USAsample = user_USAonly.sample(frac=(samplesize/100), random_state=42)
 
-    st.write("### Sampled Merged Data Preview")
-    st.dataframe(user_USAonly.sample(10))
+        st.write("### Sampled Merged Data Preview")
+        st.dataframe(user_USAonly.sample(10))
 
-    # Convert pandas DataFrame into Hugging Face Dataset
-    tweetUSA_dataset = Dataset.from_pandas(user_USAonly.sample(frac=(samplesize/100), random_state=42))
+        # Convert pandas DataFrame into Hugging Face Dataset
+        tweetUSA_dataset = Dataset.from_pandas(user_USAonly.sample(frac=(samplesize/100), random_state=42))
 
     if st.button("Run Sentiment Analysis"):
         with st.spinner("Loading models and running sentiment analysis..."):
