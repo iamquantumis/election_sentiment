@@ -1,8 +1,10 @@
 pandas
 numpy
-re
-torch
 matplotlib.pyplot
 matplotlib.patches
 transformers
 datasets
+# Tell pip where to find the CPU-only PyTorch wheels
+--extra-index-url https://download.pytorch.org/whl/cpu
+# Explicitly install Torch (CPU build)
+torch==2.6.0+cpu
