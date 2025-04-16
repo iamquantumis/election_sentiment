@@ -1,7 +1,6 @@
 pandas
 numpy
-matplotlib.pyplot
-matplotlib.patches
+matplotlib
 transformers
 datasets
 # Tell pip where to find the CPU-only PyTorch wheels
