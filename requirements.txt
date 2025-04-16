@@ -1,0 +1,8 @@
+pandas
+numpy
+re
+torch
+matplotlib.pyplot
+matplotlib.patches
+transformers
+datasets
