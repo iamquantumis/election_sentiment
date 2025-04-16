@@ -1,12 +1,18 @@
-import streamlit as st
 import pandas as pd
 import numpy as np
 import re
-import torch
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
+
+# Pipeline model packages
 from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
 from datasets import Dataset
+import torch
+# Prevent Streamlit’s watcher from iterating torch.classes.__path__
+torch.classes.__path__ = []
+
+# Used to run on Streamlit
+import streamlit as st
 
 # ---------------------------
 # Function to clean tweets
@@ -69,27 +75,24 @@ def load_sentiment_pipelines():
 
     return sentiment_roberta, sentiment_distilbert, sentiment_siebert
 
+
+# --- Assign the model variables
 sentiment_roberta, sentiment_distilbert, sentiment_siebert = load_sentiment_pipelines()
 
 # ---------------------------
 # Ensemble sentiment analysis function
 def analyze_ensemble(batch):
-    # Ensure there is a cleaned version of the tweets
-    # if "cleaned_tweets" not in df.columns:
-    #    df['cleaned_tweets'] = df['tweet'].apply(clean_tweet)
 
     # Run batch inference for each model
     results_roberta = sentiment_roberta(batch["cleaned_tweets"])
     results_distilbert = sentiment_distilbert(batch["cleaned_tweets"])
     results_siebert = sentiment_siebert(batch["cleaned_tweets"])
     
-    # texts = df['cleaned_tweets'].tolist()
-       
     ensemble_sentiments = []
     ensemble_scores = []
     ensemble_votes = []
     
-    for i in range(len(df)):
+    for i in range(len(batch["cleaned_tweets"])):
         label_roberta = results_roberta[i]["label"].upper()
         label_distilbert = results_distilbert[i]["label"].upper()
         label_siebert = results_siebert[i]["label"].upper()
@@ -186,9 +189,11 @@ def main():
         cand2_df['candidate'] = candidate2_name
 
         # Merge the two dataframes
-        merged_df = pd.concat([cand1_df, cand2_df], ignore_index=True)
-        st.write("### Merged Data Preview")
-        st.dataframe(merged_df.head())
+        merged_df = pd.concat([cand1_df, cand2_df])
+        merged_df = merged_df.reset_index(drop=True)
+
+        st.write("### Sampled Merged Data Preview")
+        st.dataframe(merged_df.sample(10))
 
         # Shorten any United States (/of America) to simply "US"
         merged_df['country'] = merged_df['country'].replace({'United States of America': "US",'United States': "US"}) 
@@ -226,8 +231,16 @@ def main():
         # Create cleaned tweets column
         user_USAonly['cleaned_tweets'] = user_USAonly['tweet'].apply(clean_tweet)
 
+        # Have option to take only sample of data (runs faster)
+        samplesize = st.text_input("Data Sample Size Percent (100 = full dataset)", key="samplesize")
+        if samplesize < 1 or samplesize > 100:
+            st.error("Value must be between 1 and 100 inclusive.")
+            return
+        
+        user_USAsample = user_USAonly.sample(frac=(samplesize/100), random_state=42)
+
         # Convert pandas DataFrame into Hugging Face Dataset
-        tweetUSA_dataset = Dataset.from_pandas(user_USAonly)
+        tweetUSA_dataset = Dataset.from_pandas(user_USAsample)
 
         if st.button("Run Sentiment Analysis"):
             with st.spinner("Loading models and running sentiment analysis..."):
