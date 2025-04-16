@@ -181,8 +181,8 @@ def main():
     
     if candidate1_file and candidate2_file and candidate1_name and candidate2_name:
         try:
-            cand1_df = pd.read_csv(candidate1_file, index=0)
-            cand2_df = pd.read_csv(candidate2_file, index=0)
+            cand1_df = pd.read_csv(candidate1_file, index_col=0)
+            cand2_df = pd.read_csv(candidate2_file, index_col=0)
         except Exception as e:
             st.error(f"Error reading one of the CSV files: {e}")
             return
