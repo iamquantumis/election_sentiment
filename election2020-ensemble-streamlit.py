@@ -232,7 +232,7 @@ def main():
         user_USAonly['cleaned_tweets'] = user_USAonly['tweet'].apply(clean_tweet)
 
         # Have option to take only sample of data (runs faster)
-        samplesize = st.text_input("Data Sample Size Percent (100 = full dataset)", key="samplesize")
+        samplesize = st.number_input("Data Sample Size Percent (100 = full dataset)", key="samplesize")
         if samplesize < 1 or samplesize > 100:
             st.error("Value must be between 1 and 100 inclusive.")
             return
