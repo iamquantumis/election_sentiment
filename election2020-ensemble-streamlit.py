@@ -178,11 +178,15 @@ def main():
 
     if st.button("Load Data"):
         if usesample:
-            # Reading Trump Dataset 
-            cand1_df = pd.read_csv("input/hashtag_bidensamp.csv", lineterminator='\n')
+            with st.spinner("Loading sample Tweets about Joe Biden and Donald Trump..."):
+            
+                # Reading Trump Dataset 
+                cand1_df = pd.read_csv("input/hashtag_bidensamp.csv", lineterminator='\n')
 
-            # Reading Biden Dataset 
-            cand2_df = pd.read_csv("input/hashtag_trumpsamp.csv", lineterminator='\n') 
+                # Reading Biden Dataset 
+                cand2_df = pd.read_csv("input/hashtag_trumpsamp.csv", lineterminator='\n') 
+                
+            st.success("Analysis complete!")
    
         else:
             # Layout for two file uploaders and candidate name inputs
