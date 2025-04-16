@@ -169,17 +169,20 @@ def main():
         """
     )
     
+    cand1_df = pd.DataFrame()
+    cand2_df = pd.DataFrame()
+    candidate1_name = 'biden' # If using included sample data
+    candidate2_name = 'trump' # If using included sample data
+
     usesample = st.checkbox("Use included sample data?")
 
     if st.button("Load Data"):
         if usesample:
             # Reading Trump Dataset 
             cand1_df = pd.read_csv("input/hashtag_bidensamp.csv", lineterminator='\n')
-            candidate1_name = 'biden'
 
             # Reading Biden Dataset 
             cand2_df = pd.read_csv("input/hashtag_trumpsamp.csv", lineterminator='\n') 
-            candidate2_name = 'trump'
    
         else:
             # Layout for two file uploaders and candidate name inputs
@@ -212,8 +215,7 @@ def main():
     cand2_df['candidate'] = candidate2_name
 
     # Merge the two dataframes
-    merged_df = pd.concat([cand1_df, cand2_df])
-    merged_df = merged_df.reset_index(drop=True)
+    merged_df = pd.concat([cand1_df, cand2_df]).reset_index(drop=True)
 
     # Shorten any United States (/of America) to simply "US"
     merged_df['country'] = merged_df['country'].replace({'United States of America': "US",'United States': "US"}) 
@@ -244,7 +246,7 @@ def main():
     # Combine DFs with "US" country, and those with no country but US locations.
     user_USAonly = pd.concat([tweets_cntryUSA, 
                                 user_states, 
-                                user_stateUSA].reset_index(drop=True))
+                                user_stateUSA]).reset_index(drop=True)
 
     # Make sure to fill null 'country' fields with "US"
     user_USAonly['country'] = user_USAonly['country'].fillna(value="US")
