@@ -155,7 +155,7 @@ def main():
     st.write(
         """
         Upload two CSV files—one for each candidate—and provide the candidate names.  
-        The app will assign a candidate column to each file, merge the dataframes, apply data cleaning on the tweets,  
+        The app will merge the data keeping track of which tweets, apply data cleaning on the tweets,  
         and run an ensemble sentiment analysis using three pre-trained Hugging Face models.
         **Note:** Each CSV file must include a column named `tweet`.
         """
@@ -173,8 +173,8 @@ def main():
     
     if candidate1_file and candidate2_file and candidate1_name and candidate2_name:
         try:
-            cand1_df = pd.read_csv(candidate1_file)
-            cand2_df = pd.read_csv(candidate2_file)
+            cand1_df = pd.read_csv(candidate1_file, index=0)
+            cand2_df = pd.read_csv(candidate2_file, index=0)
         except Exception as e:
             st.error(f"Error reading one of the CSV files: {e}")
             return
