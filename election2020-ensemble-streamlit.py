@@ -227,7 +227,7 @@ def main():
                                        .str.contains("USA", na=False)]
 
         # Combine DFs with "US" country, and those with no country but US locations.
-        # user_USAonly = pd.concat([tweets_cntryUSA, user_states, user_stateUSA]) 
+        user_USAonly = pd.concat([tweets_cntryUSA, user_states, user_stateUSA]) 
         user_USAonly = user_USAonly.reset_index(drop=True)
 
         # Make sure to fill null 'country' fields with "US"
