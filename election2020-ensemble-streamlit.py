@@ -155,8 +155,9 @@ def main():
     st.write(
         """
         Upload two CSV files—one for each candidate—and provide the candidate names.  
-        The app will merge the data keeping track of which tweets, apply data cleaning on the tweets,  
-        and run an ensemble sentiment analysis using three pre-trained Hugging Face models.
+        The app will merge the data keeping track of which tweets,   
+        apply data cleaning on the tweets, and run an ensemble sentiment analysis 
+        using three pre-trained Hugging Face models.
         **Note:** Each CSV file must include a column named `tweet`.
         """
     )
@@ -249,7 +250,7 @@ def main():
                 result_dataset_showmodels = tweetUSA_dataset.map(
                                 analyze_ensemble,
                                 batched=True,
-                                batch_size=32  # Adjust based on GPU memory/resources
+                                batch_size=16  # Adjust based on GPU memory/resources
                             )
             st.success("Analysis complete!")
             st.write("### Sentiment Analysis Results")
