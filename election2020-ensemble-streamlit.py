@@ -81,7 +81,14 @@ sentiment_roberta, sentiment_distilbert, sentiment_siebert = load_sentiment_pipe
 
 # ---------------------------
 # Ensemble sentiment analysis function
+
+batch_counter = {"i": 0}
+
 def analyze_ensemble(batch):
+
+    # print to console (stdout) for each batch
+    print(f"🔎 Processing batch #{batch_counter['i']}")
+    batch_counter["i"] += 1
 
     # Run batch inference for each model
     results_roberta = sentiment_roberta(batch["cleaned_tweets"])
@@ -247,10 +254,11 @@ def main():
             with st.spinner("Loading models and running sentiment analysis..."):
                 # sentiment_roberta, sentiment_distilbert, sentiment_siebert = load_sentiment_pipelines()
                 # result_dataset = analyze_ensemble(tweetUSA_dataset, sentiment_roberta, sentiment_distilbert, sentiment_siebert)
+                BATCH_SIZE = 16
                 result_dataset_showmodels = tweetUSA_dataset.map(
                                 analyze_ensemble,
                                 batched=True,
-                                batch_size=16  # Adjust based on GPU memory/resources
+                                batch_size=BATCH_SIZE  # Adjust based on GPU memory/resources
                             )
             st.success("Analysis complete!")
             st.write("### Sentiment Analysis Results")
