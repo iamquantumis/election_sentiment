@@ -87,7 +87,7 @@ batch_counter = {"i": 0}
 def analyze_ensemble(batch):
 
     # print to console (stdout) for each batch
-    print(f"🔎 Processing batch #{batch_counter['i']}")
+    print(f"Processing batch #{batch_counter['i']}")
     batch_counter["i"] += 1
 
     # Run batch inference for each model
@@ -350,7 +350,7 @@ def main():
 
         if st.button("Run Sentiment Analysis"):
             with st.spinner("Loading models and running sentiment analysis..."):
-                BATCH_SIZE = 4 # Low size due to resource constraints
+                BATCH_SIZE = 1 # Low size due to resource constraints
                 result_dataset_showmodels = tweetUSA_dataset.map(
                                 analyze_ensemble,
                                 batched=True,
