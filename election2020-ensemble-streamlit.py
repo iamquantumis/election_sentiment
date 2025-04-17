@@ -287,10 +287,9 @@ def main():
 
         # Merge the two dataframes
         merged_df = pd.concat([cand1_df, cand2_df], ignore_index=True)
-        # merged_df = merged_df.loc[:, ~merged_df.columns.duplicated()] # Drop duplicate columns
 
-        st.write("### Sampled Merged Data Preview")
-        st.dataframe(merged_df.sample(10))
+        # st.write("### Sampled Merged Data Preview")
+        # st.dataframe(merged_df.sample(10))
 
         # Shorten any United States (/of America) to simply "US"
         # Check if "country" column exists
@@ -351,7 +350,7 @@ def main():
 
         if st.button("Run Sentiment Analysis"):
             with st.spinner("Loading models and running sentiment analysis..."):
-                BATCH_SIZE = 16
+                BATCH_SIZE = 4 # Low size due to resource constraints
                 result_dataset_showmodels = tweetUSA_dataset.map(
                                 analyze_ensemble,
                                 batched=True,
