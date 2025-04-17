@@ -429,7 +429,7 @@ def main():
                 plt.tight_layout()
 
                 # Display the plot
-                plt.show()
+                st.pyplot(fig)
 
 if __name__ == "__main__":
     main()
