@@ -195,7 +195,10 @@ def main():
                 cand2_df = pd.read_csv("input/hashtag_trumpsamp.csv", lineterminator='\n') 
                 
             st.success("Data load complete!")
-   
+
+            st.write("### Sampled Data Preview")
+            st.dataframe(cand1_df.sample(10))
+ 
         else:
             # Layout for two file uploaders and candidate name inputs
             col1, col2 = st.columns(2)
