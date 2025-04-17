@@ -36,7 +36,8 @@ def load_sentiment_pipeline():
 
         model_name = "siebert/sentiment-roberta-large-english"
         tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForSequenceClassification.from_pretrained(model_name)
+        model = AutoModelForSequenceClassification\
+            .from_pretrained(model_name, from_tf=True)
 
         sentiment_pipeline = pipeline(
             "sentiment-analysis",
