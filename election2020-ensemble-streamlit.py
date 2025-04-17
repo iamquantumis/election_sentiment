@@ -286,7 +286,8 @@ def main():
         cand2_df['candidate'] = candidate2_name
 
         # Merge the two dataframes
-        merged_df = pd.concat([cand1_df, cand2_df]).reset_index(drop=True)
+        merged_df = pd.concat([cand1_df, cand2_df], ignore_index=True)
+        merged_df = merged_df.loc[:, ~merged_df.columns.duplicated()] # Drop duplicate columns
 
         st.write("### Sampled Merged Data Preview")
         st.dataframe(merged_df.sample(10))
