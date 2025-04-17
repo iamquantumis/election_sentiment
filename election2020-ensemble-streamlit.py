@@ -377,7 +377,7 @@ def main():
 
                 BATCH_SIZE = 2 # Low size due to resource constraints
                 result_dataset_showmodels = tweetUSA_dataset.map(
-                    lambda batch: analyze_ensemble(batch, roberta_pipe, distilbert_pipe),
+                    lambda batch: analyze_rd(batch, roberta_pipe, distilbert_pipe),
                     batched=True,
                     batch_size=BATCH_SIZE  # Keep small for CPU stability
                 )
