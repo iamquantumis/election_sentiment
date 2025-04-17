@@ -3,8 +3,8 @@ numpy
 matplotlib
 transformers
 datasets
-tensorflow-cpu==2.15.0
-tf-keras==2.15.0
+# tensorflow-cpu==2.15.0
+# tf-keras==2.15.0
 # Tell pip where to find the CPU-only PyTorch wheels
 --extra-index-url https://download.pytorch.org/whl/cpu
 # Explicitly install Torch (CPU build)
