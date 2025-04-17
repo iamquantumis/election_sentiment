@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 
 # Pipeline model packages
+import os
+os.environ["TRANSFORMERS_NO_TF"] = "1"  # 💥 Must come before importing transformers
+
 from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
 from datasets import Dataset
 import tensorflow
