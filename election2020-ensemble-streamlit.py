@@ -179,21 +179,6 @@ def main():
         """
     )
     
-    # cand1_df = pd.DataFrame()
-    # cand2_df = pd.DataFrame()
-    # candidate1_name = 'biden' # If using included sample data
-    # candidate2_name = 'trump' # If using included sample data
-
-    # merged_df = pd.DataFrame() # Merge two datasets
-    # tweets_cntryUSA = pd.DataFrame() # Tweets where country = "US"
-    # tweets_loconly = pd.DataFrame()  # Tweets where location shows US location but country is null
-    # user_states = pd.DataFrame()     # Tweets where location shows a US State
-    # user_stateUSA = pd.DataFrame()   # Tweets where location shows "USA"
-    # user_USAonly = pd.DataFrame()    # Final dataset filtered for only US locations
-    # tweetUSA_dataset = Dataset.from_pandas(user_USAonly)
-
-    # usesample = st.checkbox("Use included sample Twitter data?")
-
     # Let user pick data source
     data_source = st.radio("Choose data source:", ["Use included sample data", "Upload your own CSV files"])
 
@@ -237,55 +222,7 @@ def main():
             st.warning("Please upload CSV files and provide names for both candidates.")
             return
 
-        # if usesample:
-        #     with st.spinner("Loading sample Tweets about Joe Biden and Donald Trump..."):
-            
-        #         try:
-        #             # Reading Biden Dataset 
-        #             cand1_df = pd.read_csv("input/hashtag_bidensamp.csv", lineterminator='\n')
-        #             # Reading Trump Dataset 
-        #             cand2_df = pd.read_csv("input/hashtag_trumpsamp.csv", lineterminator='\n') 
-        #         except Exception as e:
-        #             st.error(f"Error reading one of the CSV files: {e}")
-        #             return
-                
-        #         # Reading Trump Dataset 
-        #         # cand1_df = pd.read_csv("input/hashtag_bidensamp.csv", lineterminator='\n')
-
-        #         # Reading Biden Dataset 
-        #         # cand2_df = pd.read_csv("input/hashtag_trumpsamp.csv", lineterminator='\n') 
-                
-        #     st.success("Data load complete!")
-
-        #     st.write("### Sampled Data Preview")
-        #     st.dataframe(cand1_df.sample(10))
-        
-        
-        # # Layout for two file uploaders and candidate name inputs
-        # col1, col2 = st.columns(2)
-
-        # with col1:
-        #     candidate1_file = st.file_uploader("Upload CSV for Candidate 1", type="csv", key="candidate1_file")
-        #     candidate1_name = st.text_input("Candidate 1 Name", key="candidate1_name")
-        # with col2:
-        #     candidate2_file = st.file_uploader("Upload CSV for Candidate 2", type="csv", key="candidate2_file")
-        #     candidate2_name = st.text_input("Candidate 2 Name", key="candidate2_name")
-
-        # if candidate1_file and candidate2_file and candidate1_name and candidate2_name:
-        #     try:
-        #         cand1_df = pd.read_csv(candidate1_file, index_col=0)
-        #         cand2_df = pd.read_csv(candidate2_file, index_col=0)
-        #     except Exception as e:
-        #         st.error(f"Error reading one of the CSV files: {e}")
-        #         return
-            
-        #     # Validate that each dataframe has a 'tweet' column
-        #     if "tweet" not in cand1_df.columns or "tweet" not in cand2_df.columns:
-        #         st.error("Both CSV files must contain a 'tweet' column.")
-        #         return
-        # else:
-        #     st.info("Please upload CSV files and provide names for both candidates.")
-
+ 
     if cand1_df is not None and cand2_df is not None:
         if "tweet" not in cand1_df.columns or "tweet" not in cand2_df.columns:
             st.error("Both datasets must contain a 'tweet' column.")
@@ -399,7 +336,7 @@ def main():
                                 .unstack(fill_value=0))
 
                 # Create the plot
-                plt.figure(figsize=(12, 6))
+                fig = plt.figure(figsize=(12, 6))
 
                 # Get the candidates and sentiments
                 candidates = sentiment_counts.index
