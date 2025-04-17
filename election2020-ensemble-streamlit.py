@@ -174,6 +174,14 @@ def main():
     candidate1_name = 'biden' # If using included sample data
     candidate2_name = 'trump' # If using included sample data
 
+    merged_df = pd.DataFrame() # Merge two datasets
+    tweets_cntryUSA = pd.DataFrame() # Tweets where country = "US"
+    tweets_loconly = pd.DataFrame()  # Tweets where location shows US location but country is null
+    user_states = pd.DataFrame()     # Tweets where location shows a US State
+    user_stateUSA = pd.DataFrame()   # Tweets where location shows "USA"
+    user_USAonly = pd.DataFrame()    # Final dataset filtered for only US locations
+    tweetUSA_dataset = Dataset.from_pandas(user_USAonly)
+
     usesample = st.checkbox("Use included sample Twitter data?")
 
     if st.button("1 - Load Twitter Data"):
