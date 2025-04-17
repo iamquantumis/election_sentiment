@@ -10,7 +10,7 @@ os.environ["TRANSFORMERS_NO_TF"] = "1"  # 💥 Must come before importing transf
 
 from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
 from datasets import Dataset
-import tensorflow
+# import tensorflow
 import torch
 # Prevent Streamlit’s watcher from iterating torch.classes.__path__
 torch.classes.__path__ = []
