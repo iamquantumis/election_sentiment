@@ -174,9 +174,9 @@ def main():
     candidate1_name = 'biden' # If using included sample data
     candidate2_name = 'trump' # If using included sample data
 
-    usesample = st.checkbox("Use included sample data?")
+    usesample = st.checkbox("Use included sample Twitter data?")
 
-    if st.button("Load Data"):
+    if st.button("Load Twitter Data"):
         if usesample:
             with st.spinner("Loading sample Tweets about Joe Biden and Donald Trump..."):
             
@@ -186,7 +186,7 @@ def main():
                 # Reading Biden Dataset 
                 cand2_df = pd.read_csv("input/hashtag_trumpsamp.csv", lineterminator='\n') 
                 
-            st.success("Analysis complete!")
+            st.success("Data load complete!")
    
         else:
             # Layout for two file uploaders and candidate name inputs
@@ -214,7 +214,8 @@ def main():
             else:
                 st.info("Please upload CSV files and provide names for both candidates.")
 
-        if st.button("Clean Data"):
+        if st.button("Clean Twitter Data"):
+
             # Assign candidate names
             cand1_df['candidate'] = candidate1_name
             cand2_df['candidate'] = candidate2_name
