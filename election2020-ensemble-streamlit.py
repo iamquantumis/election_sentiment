@@ -8,7 +8,7 @@ from matplotlib.patches import Patch
 import os
 os.environ["TRANSFORMERS_NO_TF"] = "1"  # 💥 Must come before importing transformers
 
-from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from datasets import Dataset
 # import tensorflow
 import torch
@@ -69,12 +69,14 @@ roberta_pipe, distilbert_pipe = load_sentiment_pipelines()
 batch_counter = {"i": 0}
 
 def analyze_roberta(batch):
-    
+
     # print to console (stdout) for each batch
     print(f"Processing batch #{batch_counter['i']}")
     batch_counter["i"] += 1
 
     try:
+
+        from transformers import pipeline
         results = sentiment_roberta(batch["cleaned_tweets"])
 
         sentiments = []
@@ -103,6 +105,7 @@ def analyze_roberta(batch):
         }
 
 def analyze_rd(batch, roberta_pipe, distilbert_pipe):
+
     print(f"Processing batch #{batch_counter['i']}")
     batch_counter["i"] += 1
 
@@ -171,9 +174,9 @@ def analyze_ensemble(batch):
     batch_counter["i"] += 1
 
     # Run batch inference for each model
-    results_roberta = sentiment_roberta(batch["cleaned_tweets"])
-    results_distilbert = sentiment_distilbert(batch["cleaned_tweets"])
-    results_siebert = sentiment_siebert(batch["cleaned_tweets"])
+    results_roberta = roberta_pipe(batch["cleaned_tweets"])
+    results_distilbert = distilbert_pipe(batch["cleaned_tweets"])
+    results_siebert = siebert_pipe(batch["cleaned_tweets"])
     
     ensemble_sentiments = []
     ensemble_scores = []
