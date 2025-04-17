@@ -28,61 +28,70 @@ def clean_tweet(tweet):
 # ---------------------------
 # Cache the loading of sentiment models for efficiency
 @st.cache_resource
-def load_sentiment_pipelines():
-    device = 0 if torch.cuda.is_available() else -1
+def load_sentiment_pipeline():
+    try:
+        device = -1  # Force CPU (Streamlit Community doesn't support GPU)
 
-    # --- Initialize roBERTa model
-    sentiment_roberta = pipeline(
-        "sentiment-analysis",
-        model="cardiffnlp/twitter-roberta-base-sentiment-latest",
-        tokenizer="cardiffnlp/twitter-roberta-base-sentiment-latest",
-        device=device,
-        truncation=True,  # Automatically truncates to max allowed tokens
-        max_length=512    # Defaults to model's max tokens per tweet 
-    )
+        from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
 
-    # --- Initialize DistilBERT model
-    distilbert_tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
-    if device == 0:
-        distilBERT_model = AutoModelForSequenceClassification.from_pretrained(
-            "distilbert-base-uncased-finetuned-sst-2-english",
-            torch_dtype=torch.float16,
-            attn_implementation="sdpa"
-        ).to(device)
-    else:
-        distilBERT_model = AutoModelForSequenceClassification.from_pretrained(
-            "distilbert-base-uncased-finetuned-sst-2-english"
+        model_name = "siebert/sentiment-roberta-large-english"
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForSequenceClassification.from_pretrained(model_name)
+
+        sentiment_pipeline = pipeline(
+            "sentiment-analysis",
+            model=model,
+            tokenizer=tokenizer,
+            device=device
         )
 
-    sentiment_distilbert = pipeline(
-        "sentiment-analysis",
-        model=distilBERT_model,
-        tokenizer=distilbert_tokenizer,
-        device=device,
-        torch_dtype=torch.float16 if device==0 else None
-    )
-
-    # --- Initialize SieBERT model
-    model_siebert = "siebert/sentiment-roberta-large-english"
-    siebert_tokenizer = AutoTokenizer.from_pretrained(model_siebert)
-    siebert_model = AutoModelForSequenceClassification.from_pretrained(model_siebert)
-    sentiment_siebert = pipeline(
-        "sentiment-analysis",
-        model=siebert_model,
-        tokenizer=siebert_tokenizer,
-        device=device
-    )
-
-    return sentiment_roberta, sentiment_distilbert, sentiment_siebert
-
-
+        print("✅ SieBERT model loaded successfully on CPU.")
+        return sentiment_pipeline
+    except Exception as e:
+        print(f"❌ Failed to load SieBERT model: {e}")
+        return None
+    
 # --- Assign the model variables
-sentiment_roberta, sentiment_distilbert, sentiment_siebert = load_sentiment_pipelines()
+sentiment_siebert = load_sentiment_pipeline()
 
 # ---------------------------
 # Ensemble sentiment analysis function
 
 batch_counter = {"i": 0}
+
+def analyze_siebert(batch):
+    
+    # print to console (stdout) for each batch
+    print(f"Processing batch #{batch_counter['i']}")
+    batch_counter["i"] += 1
+
+    try:
+        results = sentiment_siebert(batch["cleaned_tweets"])
+
+        sentiments = []
+        scores = []
+
+        for result in results:
+            label = result["label"].upper()
+            score = result["score"]
+
+            # SieBERT only returns POSITIVE or NEGATIVE
+            sentiments.append(label)
+            scores.append(score)
+
+        return {
+            "ensemble_sentiment": sentiments,
+            "ensemble_score": scores,
+            "ensemble_votes": ["S"] * len(sentiments)
+        }
+
+    except Exception as e:
+        print(f"❌ Error during batch sentiment analysis: {e}")
+        return {
+            "ensemble_sentiment": [None] * len(batch["cleaned_tweets"]),
+            "ensemble_score": [None] * len(batch["cleaned_tweets"]),
+            "ensemble_votes": [None] * len(batch["cleaned_tweets"])
+        }
 
 def analyze_ensemble(batch):
 
@@ -352,7 +361,7 @@ def main():
             with st.spinner("Loading models and running sentiment analysis..."):
                 BATCH_SIZE = 1 # Low size due to resource constraints
                 result_dataset_showmodels = tweetUSA_dataset.map(
-                                analyze_ensemble,
+                                analyze_siebert,
                                 batched=True,
                                 batch_size=BATCH_SIZE  # Adjust based on GPU memory/resources
                             )
