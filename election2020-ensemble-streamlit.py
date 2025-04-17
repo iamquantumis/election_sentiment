@@ -32,28 +32,36 @@ def clean_tweet(tweet):
 # ---------------------------
 # Cache the loading of sentiment models for efficiency
 @st.cache_resource
-def load_sentiment_pipeline():
+def load_sentiment_pipelines():
     try:
         from transformers import pipeline
 
-        model_name = "cardiffnlp/twitter-roberta-base-sentiment-latest"
+        roberta_model = "cardiffnlp/twitter-roberta-base-sentiment-latest"
+        distilbert_model = "distilbert-base-uncased-finetuned-sst-2-english"
 
-        sentiment_pipeline = pipeline(
+        roberta_pipe = pipeline(
             "sentiment-analysis",
-            model=model_name,
-            tokenizer=model_name,
-            device=-1  # CPU-only
+            model=roberta_model,
+            tokenizer=roberta_model,
+            device=-1
         )
 
-        print("✅ RoBERTa sentiment pipeline loaded successfully.")
-        return sentiment_pipeline
+        distilbert_pipe = pipeline(
+            "sentiment-analysis",
+            model=distilbert_model,
+            tokenizer=distilbert_model,
+            device=-1
+        )
+
+        print("✅ Loaded RoBERTa and DistilBERT sentiment models.")
+        return roberta_pipe, distilbert_pipe
 
     except Exception as e:
-        print(f"❌ Failed to load RoBERTa sentiment pipeline: {e}")
-        return None
+        print(f"❌ Failed to load sentiment models: {e}")
+        return None, None
     
 # --- Assign the model variables
-sentiment_roberta = load_sentiment_pipeline()
+roberta_pipe, distilbert_pipe = load_sentiment_pipelines()
 
 # ---------------------------
 # Ensemble sentiment analysis function
@@ -93,6 +101,68 @@ def analyze_roberta(batch):
             "ensemble_score": [None] * len(batch["cleaned_tweets"]),
             "ensemble_votes": [None] * len(batch["cleaned_tweets"])
         }
+
+def analyze_rd(batch, roberta_pipe, distilbert_pipe):
+    print(f"Processing batch #{batch_counter['i']}")
+    batch_counter["i"] += 1
+
+    # Run batch inference
+    results_roberta = roberta_pipe(batch["cleaned_tweets"])
+    results_distilbert = distilbert_pipe(batch["cleaned_tweets"])
+
+    ensemble_sentiments = []
+    ensemble_scores = []
+    ensemble_votes = []
+
+    for i in range(len(batch["cleaned_tweets"])):
+        label_roberta = results_roberta[i]["label"].upper()
+        label_distilbert = results_distilbert[i]["label"].upper()
+
+        # Skip if RoBERTa is NEUTRAL
+        if label_roberta == "NEUTRAL":
+            ensemble_sentiments.append(None)
+            ensemble_scores.append(None)
+            ensemble_votes.append(None)
+            continue
+
+        # Collect predictions
+        predictions = [label_roberta, label_distilbert]
+
+        # Majority vote (favor RoBERTa if tied)
+        vote = max(set(predictions), key=predictions.count)
+
+        final_sentiment = vote
+
+        # Score aggregation for agreeing models
+        score_roberta = results_roberta[i]["score"]
+        score_distilbert = results_distilbert[i]["score"]
+
+        scores = [score_roberta, score_distilbert]
+
+        maj_scores = [
+            score for score, label in zip(scores, predictions) if label == vote
+        ]
+
+        ensemble_score = sum(maj_scores) / len(maj_scores)
+
+        # Record which models voted for the majority
+        vote_models = []
+        if label_roberta == vote:
+            vote_models.append("R")
+        if label_distilbert == vote:
+            vote_models.append("D")
+
+        voting_set = ''.join(vote_models)
+
+        ensemble_sentiments.append(final_sentiment)
+        ensemble_scores.append(ensemble_score)
+        ensemble_votes.append(voting_set)
+
+    return {
+        "ensemble_sentiment": ensemble_sentiments,
+        "ensemble_score": ensemble_scores,
+        "ensemble_votes": ensemble_votes
+    }
 
 def analyze_ensemble(batch):
 
@@ -297,12 +367,17 @@ def main():
 
         if st.button("Run Sentiment Analysis"):
             with st.spinner("Loading models and running sentiment analysis..."):
-                BATCH_SIZE = 4 # Low size due to resource constraints
+
+                if roberta_pipe is None or distilbert_pipe is None:
+                    st.error("Failed to load models.")
+                    st.stop()
+
+                BATCH_SIZE = 2 # Low size due to resource constraints
                 result_dataset_showmodels = tweetUSA_dataset.map(
-                                analyze_roberta,
-                                batched=True,
-                                batch_size=BATCH_SIZE  # Adjust based on GPU memory/resources
-                            )
+                    lambda batch: analyze_ensemble(batch, roberta_pipe, distilbert_pipe),
+                    batched=True,
+                    batch_size=BATCH_SIZE  # Keep small for CPU stability
+                )
             st.success("Analysis complete!")
             st.write("### Sentiment Analysis Results")
 
