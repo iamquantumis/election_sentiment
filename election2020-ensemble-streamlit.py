@@ -169,72 +169,117 @@ def main():
         """
     )
     
-    cand1_df = pd.DataFrame()
-    cand2_df = pd.DataFrame()
-    candidate1_name = 'biden' # If using included sample data
-    candidate2_name = 'trump' # If using included sample data
+    # cand1_df = pd.DataFrame()
+    # cand2_df = pd.DataFrame()
+    # candidate1_name = 'biden' # If using included sample data
+    # candidate2_name = 'trump' # If using included sample data
 
-    merged_df = pd.DataFrame() # Merge two datasets
-    tweets_cntryUSA = pd.DataFrame() # Tweets where country = "US"
-    tweets_loconly = pd.DataFrame()  # Tweets where location shows US location but country is null
-    user_states = pd.DataFrame()     # Tweets where location shows a US State
-    user_stateUSA = pd.DataFrame()   # Tweets where location shows "USA"
-    user_USAonly = pd.DataFrame()    # Final dataset filtered for only US locations
-    tweetUSA_dataset = Dataset.from_pandas(user_USAonly)
+    # merged_df = pd.DataFrame() # Merge two datasets
+    # tweets_cntryUSA = pd.DataFrame() # Tweets where country = "US"
+    # tweets_loconly = pd.DataFrame()  # Tweets where location shows US location but country is null
+    # user_states = pd.DataFrame()     # Tweets where location shows a US State
+    # user_stateUSA = pd.DataFrame()   # Tweets where location shows "USA"
+    # user_USAonly = pd.DataFrame()    # Final dataset filtered for only US locations
+    # tweetUSA_dataset = Dataset.from_pandas(user_USAonly)
 
-    usesample = st.checkbox("Use included sample Twitter data?")
+    # usesample = st.checkbox("Use included sample Twitter data?")
 
-    if st.button("1 - Load Twitter Data"):
-        if usesample:
-            with st.spinner("Loading sample Tweets about Joe Biden and Donald Trump..."):
-            
-                try:
-                    # Reading Biden Dataset 
-                    cand1_df = pd.read_csv("input/hashtag_bidensamp.csv", lineterminator='\n')
-                    # Reading Trump Dataset 
-                    cand2_df = pd.read_csv("input/hashtag_trumpsamp.csv", lineterminator='\n') 
-                except Exception as e:
-                    st.error(f"Error reading one of the CSV files: {e}")
-                    return
+    # Let user pick data source
+    data_source = st.radio("Choose data source:", ["Use included sample data", "Upload your own CSV files"])
+
+    # Use included data samples of Trump and Biden Tweets
+    if data_source == "Use included sample data":
+        candidate1_name = "biden"
+        candidate2_name = "trump"
+
+        with st.spinner("Loading sample Tweets about Joe Biden and Donald Trump..."):
+            try:
+                cand1_df = pd.read_csv("input/hashtag_bidensamp.csv", lineterminator="\n")
+                cand2_df = pd.read_csv("input/hashtag_trumpsamp.csv", lineterminator="\n")
+                st.success("Sample data loaded.")
+            except Exception as e:
+                st.error(f"Error loading sample data: {e}")
+                return
+    
+    else:
+        # Step 2 – Upload user files
+        col1, col2 = st.columns(2)
+
+        with col1:
+            candidate1_file = st.file_uploader("Upload CSV for Candidate 1", type="csv")
+            candidate1_name = st.text_input("Candidate 1 Name")
+        with col2:
+            candidate2_file = st.file_uploader("Upload CSV for Candidate 2", type="csv")
+            candidate2_name = st.text_input("Candidate 2 Name")
+
+        if candidate1_file and candidate2_file and candidate1_name and candidate2_name:
+            try:
+                cand1_df = pd.read_csv(candidate1_file, 
+                                       index_col=0 if candidate1_file.name.endswith('.csv') else None)
+                cand2_df = pd.read_csv(candidate2_file, 
+                                       index_col=0 if candidate2_file.name.endswith('.csv') else None)
                 
-                # Reading Trump Dataset 
-                # cand1_df = pd.read_csv("input/hashtag_bidensamp.csv", lineterminator='\n')
-
-                # Reading Biden Dataset 
-                # cand2_df = pd.read_csv("input/hashtag_trumpsamp.csv", lineterminator='\n') 
-                
-            st.success("Data load complete!")
-
-            st.write("### Sampled Data Preview")
-            st.dataframe(cand1_df.sample(10))
- 
+                # st.success("User-uploaded data loaded.")
+            except Exception as e:
+                st.error(f"Error reading uploaded CSVs: {e}")
+                return
         else:
-            # Layout for two file uploaders and candidate name inputs
-            col1, col2 = st.columns(2)
+            st.warning("Please upload CSV files and provide names for both candidates.")
+            return
 
-            with col1:
-                candidate1_file = st.file_uploader("Upload CSV for Candidate 1", type="csv", key="candidate1_file")
-                candidate1_name = st.text_input("Candidate 1 Name", key="candidate1_name")
-            with col2:
-                candidate2_file = st.file_uploader("Upload CSV for Candidate 2", type="csv", key="candidate2_file")
-                candidate2_name = st.text_input("Candidate 2 Name", key="candidate2_name")
-
-            if candidate1_file and candidate2_file and candidate1_name and candidate2_name:
-                try:
-                    cand1_df = pd.read_csv(candidate1_file, index_col=0)
-                    cand2_df = pd.read_csv(candidate2_file, index_col=0)
-                except Exception as e:
-                    st.error(f"Error reading one of the CSV files: {e}")
-                    return
+        # if usesample:
+        #     with st.spinner("Loading sample Tweets about Joe Biden and Donald Trump..."):
+            
+        #         try:
+        #             # Reading Biden Dataset 
+        #             cand1_df = pd.read_csv("input/hashtag_bidensamp.csv", lineterminator='\n')
+        #             # Reading Trump Dataset 
+        #             cand2_df = pd.read_csv("input/hashtag_trumpsamp.csv", lineterminator='\n') 
+        #         except Exception as e:
+        #             st.error(f"Error reading one of the CSV files: {e}")
+        #             return
                 
-                # Validate that each dataframe has a 'tweet' column
-                if "tweet" not in cand1_df.columns or "tweet" not in cand2_df.columns:
-                    st.error("Both CSV files must contain a 'tweet' column.")
-                    return
-            else:
-                st.info("Please upload CSV files and provide names for both candidates.")
+        #         # Reading Trump Dataset 
+        #         # cand1_df = pd.read_csv("input/hashtag_bidensamp.csv", lineterminator='\n')
 
-    if st.button("2 - Clean Twitter Data"):
+        #         # Reading Biden Dataset 
+        #         # cand2_df = pd.read_csv("input/hashtag_trumpsamp.csv", lineterminator='\n') 
+                
+        #     st.success("Data load complete!")
+
+        #     st.write("### Sampled Data Preview")
+        #     st.dataframe(cand1_df.sample(10))
+        
+        
+        # # Layout for two file uploaders and candidate name inputs
+        # col1, col2 = st.columns(2)
+
+        # with col1:
+        #     candidate1_file = st.file_uploader("Upload CSV for Candidate 1", type="csv", key="candidate1_file")
+        #     candidate1_name = st.text_input("Candidate 1 Name", key="candidate1_name")
+        # with col2:
+        #     candidate2_file = st.file_uploader("Upload CSV for Candidate 2", type="csv", key="candidate2_file")
+        #     candidate2_name = st.text_input("Candidate 2 Name", key="candidate2_name")
+
+        # if candidate1_file and candidate2_file and candidate1_name and candidate2_name:
+        #     try:
+        #         cand1_df = pd.read_csv(candidate1_file, index_col=0)
+        #         cand2_df = pd.read_csv(candidate2_file, index_col=0)
+        #     except Exception as e:
+        #         st.error(f"Error reading one of the CSV files: {e}")
+        #         return
+            
+        #     # Validate that each dataframe has a 'tweet' column
+        #     if "tweet" not in cand1_df.columns or "tweet" not in cand2_df.columns:
+        #         st.error("Both CSV files must contain a 'tweet' column.")
+        #         return
+        # else:
+        #     st.info("Please upload CSV files and provide names for both candidates.")
+
+    if cand1_df is not None and cand2_df is not None:
+        if "tweet" not in cand1_df.columns or "tweet" not in cand2_df.columns:
+            st.error("Both datasets must contain a 'tweet' column.")
+            return
 
         # Assign candidate names
         cand1_df['candidate'] = candidate1_name
@@ -247,10 +292,14 @@ def main():
         st.dataframe(merged_df.sample(10))
 
         # Shorten any United States (/of America) to simply "US"
-        merged_df['country'] = merged_df['country'].replace({'United States of America': "US",'United States': "US"}) 
-
-        # Isolate tweets where `country` is "US"
-        tweets_cntryUSA = merged_df[merged_df["country"] == "US"]
+        # Check if "country" column exists
+        if "country" in merged_df.columns:
+            merged_df['country'] = merged_df['country'].replace({'United States of America': "US", 'United States': "US"})
+            tweets_cntryUSA = merged_df[merged_df["country"] == "US"]
+        
+        # If not, force all tweets to originate from the "US"
+        else:
+            merged_df['country'] = "US"
 
         # Check to see where user_location is available, but no country specified
         tweets_loconly = merged_df[merged_df['country'].isnull() & 
@@ -284,7 +333,8 @@ def main():
         user_USAonly['cleaned_tweets'] = user_USAonly['tweet'].apply(clean_tweet)
 
         # Have option to take only sample of data (runs faster)
-        samplesize = st.number_input("Data Sample Size Percent (100 = full dataset)", key="samplesize")
+        samplesize = st.number_input("Data Sample Size Percent (100 = full dataset)", 
+                                     key="samplesize")
         if samplesize < 1 or samplesize > 100:
             st.error("Value must be between 1 and 100 inclusive.")
             return
@@ -295,81 +345,81 @@ def main():
         st.dataframe(user_USAonly.sample(10))
 
         # Convert pandas DataFrame into Hugging Face Dataset
-        tweetUSA_dataset = Dataset.from_pandas(user_USAonly.sample(frac=(samplesize/100), random_state=42))
+        tweetUSA_dataset = Dataset.from_pandas(user_USAonly.sample(frac=(samplesize/100), 
+                                                                   random_state=42))
 
-    if st.button("3 - Run Sentiment Analysis"):
-        with st.spinner("Loading models and running sentiment analysis..."):
-            # sentiment_roberta, sentiment_distilbert, sentiment_siebert = load_sentiment_pipelines()
-            # result_dataset = analyze_ensemble(tweetUSA_dataset, sentiment_roberta, sentiment_distilbert, sentiment_siebert)
-            BATCH_SIZE = 16
-            result_dataset_showmodels = tweetUSA_dataset.map(
-                            analyze_ensemble,
-                            batched=True,
-                            batch_size=BATCH_SIZE  # Adjust based on GPU memory/resources
-                        )
-        st.success("Analysis complete!")
-        st.write("### Sentiment Analysis Results")
+        if st.button("Run Sentiment Analysis"):
+            with st.spinner("Loading models and running sentiment analysis..."):
+                BATCH_SIZE = 16
+                result_dataset_showmodels = tweetUSA_dataset.map(
+                                analyze_ensemble,
+                                batched=True,
+                                batch_size=BATCH_SIZE  # Adjust based on GPU memory/resources
+                            )
+            st.success("Analysis complete!")
+            st.write("### Sentiment Analysis Results")
 
-        # Convert back to pandas DataFrame for data analysis
-        tweetUSA_sentiments_showmodels = result_dataset_showmodels.to_pandas()
+            # Convert back to pandas DataFrame for data analysis
+            tweetUSA_sentiments_showmodels = result_dataset_showmodels.to_pandas()
 
-        # Remove any rows that were previously judged as neutral, now None or NaN
-        tweetUSA_sentiments_modelsclean = tweetUSA_sentiments_showmodels\
-            .dropna(subset=['ensemble_score'])
+            # Remove any rows that were previously judged as neutral, now None or NaN
+            tweetUSA_sentiments_modelsclean = tweetUSA_sentiments_showmodels\
+                .dropna(subset=['ensemble_score'])
 
-        # Provide download option for the results
-        csv_result = tweetUSA_sentiments_modelsclean.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            label="Download Results as CSV",
-            data=csv_result,
-            file_name='sentiment_analysis_results.csv',
-            mime='text/csv'
-        )
+            # Provide download option for the results
+            csv_result = tweetUSA_sentiments_modelsclean.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label="Download Results as CSV",
+                data=csv_result,
+                file_name='sentiment_analysis_results.csv',
+                mime='text/csv'
+            )
 
-        if tweetUSA_sentiments_modelsclean.empty:
-            st.warning("No tweets to analyze after filtering.")
-        else:
-            # Let's chart the data by tweet count
-            st.write("### Sentiment Count by Candidate")
+            if tweetUSA_sentiments_modelsclean.empty:
+                st.warning("No tweets to analyze after filtering.")
+            else:
+                # Let's chart the data by tweet count
+                st.write("### Sentiment Count by Candidate")
 
-            confidence = 0.5
-            sentiment_counts = (tweetUSA_sentiments_modelsclean[tweetUSA_sentiments_modelsclean['ensemble_score'] > confidence]
-                            .groupby('candidate')['ensemble_sentiment']
-                            .value_counts()
-                            .unstack(fill_value=0))
+                confidence = 0.5
+                sentiment_counts = (tweetUSA_sentiments_modelsclean[
+                    tweetUSA_sentiments_modelsclean['ensemble_score'] > confidence]\
+                                .groupby('candidate')['ensemble_sentiment']\
+                                .value_counts()\
+                                .unstack(fill_value=0))
 
-            # Create the plot
-            plt.figure(figsize=(12, 6))
+                # Create the plot
+                plt.figure(figsize=(12, 6))
 
-            # Get the candidates and sentiments
-            candidates = sentiment_counts.index
-            sentiments = sentiment_counts.columns
-            n_sentiments = len(sentiments)
-            bar_width = 0.25  # Width of each bar
+                # Get the candidates and sentiments
+                candidates = sentiment_counts.index
+                sentiments = sentiment_counts.columns
+                n_sentiments = len(sentiments)
+                bar_width = 0.25  # Width of each bar
 
-            # Set the positions of the bars
-            x = np.arange(len(candidates))
+                # Set the positions of the bars
+                x = np.arange(len(candidates))
 
-            # Plot bars for each sentiment
-            for i, sentiment in enumerate(sentiments):
-                plt.bar(x + i * bar_width, 
-                        sentiment_counts[sentiment], 
-                        bar_width, 
-                        label=sentiment)
+                # Plot bars for each sentiment
+                for i, sentiment in enumerate(sentiments):
+                    plt.bar(x + i * bar_width, 
+                            sentiment_counts[sentiment], 
+                            bar_width, 
+                            label=sentiment)
 
-            # Customize the plot
-            plt.xlabel('Candidates')
-            plt.ylabel('Number of Tweets')
-            plt.title(f'Sentiment Count per Candidate (Confidence > {confidence * 100}%)')
-            plt.xticks(x + bar_width * (n_sentiments-1)/2, candidates, rotation=45)
-            plt.legend(title='Sentiment')
-            plt.grid(True, alpha=0.3)
+                # Customize the plot
+                plt.xlabel('Candidates')
+                plt.ylabel('Number of Tweets')
+                plt.title(f'Sentiment Count per Candidate (Confidence > {confidence * 100}%)')
+                plt.xticks(x + bar_width * (n_sentiments-1)/2, candidates, rotation=45)
+                plt.legend(title='Sentiment')
+                plt.grid(True, alpha=0.3)
 
-            # Adjust layout to prevent label cutoff
-            plt.tight_layout()
+                # Adjust layout to prevent label cutoff
+                plt.tight_layout()
 
-            # Display the plot
-            plt.show()
+                # Display the plot
+                plt.show()
 
 if __name__ == "__main__":
     main()
