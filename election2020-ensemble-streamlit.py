@@ -188,11 +188,20 @@ def main():
         if usesample:
             with st.spinner("Loading sample Tweets about Joe Biden and Donald Trump..."):
             
+                try:
+                    # Reading Biden Dataset 
+                    cand1_df = pd.read_csv("input/hashtag_bidensamp.csv", lineterminator='\n')
+                    # Reading Trump Dataset 
+                    cand2_df = pd.read_csv("input/hashtag_trumpsamp.csv", lineterminator='\n') 
+                except Exception as e:
+                    st.error(f"Error reading one of the CSV files: {e}")
+                    return
+                
                 # Reading Trump Dataset 
-                cand1_df = pd.read_csv("input/hashtag_bidensamp.csv", lineterminator='\n')
+                # cand1_df = pd.read_csv("input/hashtag_bidensamp.csv", lineterminator='\n')
 
                 # Reading Biden Dataset 
-                cand2_df = pd.read_csv("input/hashtag_trumpsamp.csv", lineterminator='\n') 
+                # cand2_df = pd.read_csv("input/hashtag_trumpsamp.csv", lineterminator='\n') 
                 
             st.success("Data load complete!")
 
