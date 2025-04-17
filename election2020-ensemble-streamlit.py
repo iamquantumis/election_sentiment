@@ -243,6 +243,9 @@ def main():
         # Merge the two dataframes
         merged_df = pd.concat([cand1_df, cand2_df]).reset_index(drop=True)
 
+        st.write("### Sampled Merged Data Preview")
+        st.dataframe(merged_df.sample(10))
+
         # Shorten any United States (/of America) to simply "US"
         merged_df['country'] = merged_df['country'].replace({'United States of America': "US",'United States': "US"}) 
 
