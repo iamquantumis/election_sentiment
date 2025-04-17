@@ -274,79 +274,79 @@ def main():
         # Convert pandas DataFrame into Hugging Face Dataset
         tweetUSA_dataset = Dataset.from_pandas(user_USAonly.sample(frac=(samplesize/100), random_state=42))
 
-        if st.button("3 - Run Sentiment Analysis"):
-            with st.spinner("Loading models and running sentiment analysis..."):
-                # sentiment_roberta, sentiment_distilbert, sentiment_siebert = load_sentiment_pipelines()
-                # result_dataset = analyze_ensemble(tweetUSA_dataset, sentiment_roberta, sentiment_distilbert, sentiment_siebert)
-                BATCH_SIZE = 16
-                result_dataset_showmodels = tweetUSA_dataset.map(
-                                analyze_ensemble,
-                                batched=True,
-                                batch_size=BATCH_SIZE  # Adjust based on GPU memory/resources
-                            )
-            st.success("Analysis complete!")
-            st.write("### Sentiment Analysis Results")
+    if st.button("3 - Run Sentiment Analysis"):
+        with st.spinner("Loading models and running sentiment analysis..."):
+            # sentiment_roberta, sentiment_distilbert, sentiment_siebert = load_sentiment_pipelines()
+            # result_dataset = analyze_ensemble(tweetUSA_dataset, sentiment_roberta, sentiment_distilbert, sentiment_siebert)
+            BATCH_SIZE = 16
+            result_dataset_showmodels = tweetUSA_dataset.map(
+                            analyze_ensemble,
+                            batched=True,
+                            batch_size=BATCH_SIZE  # Adjust based on GPU memory/resources
+                        )
+        st.success("Analysis complete!")
+        st.write("### Sentiment Analysis Results")
 
-            # Convert back to pandas DataFrame for data analysis
-            tweetUSA_sentiments_showmodels = result_dataset_showmodels.to_pandas()
+        # Convert back to pandas DataFrame for data analysis
+        tweetUSA_sentiments_showmodels = result_dataset_showmodels.to_pandas()
 
-            # Remove any rows that were previously judged as neutral, now None or NaN
-            tweetUSA_sentiments_modelsclean = tweetUSA_sentiments_showmodels\
-                .dropna(subset=['ensemble_score'])
+        # Remove any rows that were previously judged as neutral, now None or NaN
+        tweetUSA_sentiments_modelsclean = tweetUSA_sentiments_showmodels\
+            .dropna(subset=['ensemble_score'])
 
-            # Provide download option for the results
-            csv_result = tweetUSA_sentiments_modelsclean.to_csv(index=False).encode("utf-8")
-            st.download_button(
-                label="Download Results as CSV",
-                data=csv_result,
-                file_name='sentiment_analysis_results.csv',
-                mime='text/csv'
-            )
+        # Provide download option for the results
+        csv_result = tweetUSA_sentiments_modelsclean.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="Download Results as CSV",
+            data=csv_result,
+            file_name='sentiment_analysis_results.csv',
+            mime='text/csv'
+        )
 
-            if tweetUSA_sentiments_modelsclean.empty:
-                st.warning("No tweets to analyze after filtering.")
-            else:
-                # Let's chart the data by tweet count
-                st.write("### Sentiment Count by Candidate")
+        if tweetUSA_sentiments_modelsclean.empty:
+            st.warning("No tweets to analyze after filtering.")
+        else:
+            # Let's chart the data by tweet count
+            st.write("### Sentiment Count by Candidate")
 
-                confidence = 0.5
-                sentiment_counts = (tweetUSA_sentiments_modelsclean[tweetUSA_sentiments_modelsclean['ensemble_score'] > confidence]
-                                .groupby('candidate')['ensemble_sentiment']
-                                .value_counts()
-                                .unstack(fill_value=0))
+            confidence = 0.5
+            sentiment_counts = (tweetUSA_sentiments_modelsclean[tweetUSA_sentiments_modelsclean['ensemble_score'] > confidence]
+                            .groupby('candidate')['ensemble_sentiment']
+                            .value_counts()
+                            .unstack(fill_value=0))
 
-                # Create the plot
-                plt.figure(figsize=(12, 6))
+            # Create the plot
+            plt.figure(figsize=(12, 6))
 
-                # Get the candidates and sentiments
-                candidates = sentiment_counts.index
-                sentiments = sentiment_counts.columns
-                n_sentiments = len(sentiments)
-                bar_width = 0.25  # Width of each bar
+            # Get the candidates and sentiments
+            candidates = sentiment_counts.index
+            sentiments = sentiment_counts.columns
+            n_sentiments = len(sentiments)
+            bar_width = 0.25  # Width of each bar
 
-                # Set the positions of the bars
-                x = np.arange(len(candidates))
+            # Set the positions of the bars
+            x = np.arange(len(candidates))
 
-                # Plot bars for each sentiment
-                for i, sentiment in enumerate(sentiments):
-                    plt.bar(x + i * bar_width, 
-                            sentiment_counts[sentiment], 
-                            bar_width, 
-                            label=sentiment)
+            # Plot bars for each sentiment
+            for i, sentiment in enumerate(sentiments):
+                plt.bar(x + i * bar_width, 
+                        sentiment_counts[sentiment], 
+                        bar_width, 
+                        label=sentiment)
 
-                # Customize the plot
-                plt.xlabel('Candidates')
-                plt.ylabel('Number of Tweets')
-                plt.title(f'Sentiment Count per Candidate (Confidence > {confidence * 100}%)')
-                plt.xticks(x + bar_width * (n_sentiments-1)/2, candidates, rotation=45)
-                plt.legend(title='Sentiment')
-                plt.grid(True, alpha=0.3)
+            # Customize the plot
+            plt.xlabel('Candidates')
+            plt.ylabel('Number of Tweets')
+            plt.title(f'Sentiment Count per Candidate (Confidence > {confidence * 100}%)')
+            plt.xticks(x + bar_width * (n_sentiments-1)/2, candidates, rotation=45)
+            plt.legend(title='Sentiment')
+            plt.grid(True, alpha=0.3)
 
-                # Adjust layout to prevent label cutoff
-                plt.tight_layout()
+            # Adjust layout to prevent label cutoff
+            plt.tight_layout()
 
-                # Display the plot
-                plt.show()
+            # Display the plot
+            plt.show()
 
 if __name__ == "__main__":
     main()
