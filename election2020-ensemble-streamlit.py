@@ -361,7 +361,7 @@ def main():
 
         if st.button("Run Sentiment Analysis"):
             with st.spinner("Loading models and running sentiment analysis..."):
-                BATCH_SIZE = 1 # Low size due to resource constraints
+                BATCH_SIZE = 4 # Low size due to resource constraints
                 result_dataset_showmodels = tweetUSA_dataset.map(
                                 analyze_siebert,
                                 batched=True,
