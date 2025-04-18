@@ -181,7 +181,10 @@ def main():
         
         Use the sample data or upload two CSV files—one per candidate. The app merges
         tweets, cleans them, and sends batches to Hugging Face Inference API for
-        sentiment analysis. Results are ensembled across RoBERTa, DistilBERT and SieBERT.
+        sentiment analysis. Results are ensembled across
+        [RoBERTa](https://huggingface.co/cardiffnlp/twitter-roberta-base-sentiment-latest), 
+        [DistilBERT](https://huggingface.co/docs/transformers/en/model_doc/distilbert) and 
+        [SieBERT](https://huggingface.co/siebert/sentiment-roberta-large-english).
         **Note:** Each CSV must include a `tweet` column.
         """
     )
