@@ -174,6 +174,7 @@ def analyze_rds(batch, roberta_pipe, distilbert_pipe, siebert_pipe):
 # ---------------------------
 def main():
     st.title("Ensemble Sentiment Analysis for Two Election Candidates")
+    st.image("support/vote-scrabble.jpg", caption="Image licensed with [Unsplash](https://unsplash.com)")
     st.write(
         """
         Can we predict the likely outcome of elections by performing sentiment analysis
@@ -181,10 +182,11 @@ def main():
         
         Use the sample data or upload two CSV files—one per candidate. The app merges
         tweets, cleans them, and sends batches to Hugging Face Inference API for
-        sentiment analysis. Results are ensembled across
+        sentiment analysis. Results are ensembled across the
         [RoBERTa](https://huggingface.co/cardiffnlp/twitter-roberta-base-sentiment-latest), 
         [DistilBERT](https://huggingface.co/docs/transformers/en/model_doc/distilbert) and 
-        [SieBERT](https://huggingface.co/siebert/sentiment-roberta-large-english).
+        [SieBERT](https://huggingface.co/siebert/sentiment-roberta-large-english) inference models.
+        
         **Note:** Each CSV must include a `tweet` column.
         """
     )
