@@ -259,7 +259,7 @@ def main():
         st.session_state.user_USAonly = user_USAonly
 
         st.write("### Sampled Merged Data Preview")
-        st.dataframe(user_USAonly['cleaned_tweets', 'candidate'].sample(10))
+        st.dataframe(user_USAonly[['cleaned_tweets', 'candidate']].sample(10))
 
         # Have option to take only sample of data (runs faster)
         samplesize = st.number_input(
@@ -358,7 +358,7 @@ def main():
             # Adjust layout to prevent label cutoff
             plt.tight_layout()
             
-            # Display the plot in Stramlit
+            # Display the plot in Streamlit
             st.pyplot(fig)
 
 
