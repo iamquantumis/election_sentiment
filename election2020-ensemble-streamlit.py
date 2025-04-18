@@ -419,16 +419,14 @@ def main():
             top_positive_candidate = sentiment_counts["POSITIVE"].idxmax().capitalize()
             top_positive_count     = sentiment_counts["POSITIVE"].max()
 
-            st.write(f\
-                """
+            st.write(f"""
                 ####🏆 Candidate with the highest count of POSITIVE tweets is: 
 
                 ####**{top_positive_candidate}** (with {top_positive_count} positive tweets)
 
                 **NOTE:** These results are based on a small sample of tweets and are for
                 educational and entertainment purposes only. There is no guarantee of accuracy.
-                """
-            )
+                """)
 
 if __name__ == "__main__":
     main()
