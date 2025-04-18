@@ -4,7 +4,7 @@
 # with Keras 3 when using models like DistilBERT that may trigger TF imports
 
 import os
-os.environ["TRANSFORMERS_NO_TF"] = "1"  # MUST be set before importing transformers
+# os.environ["TRANSFORMERS_NO_TF"] = "1"  # MUST be set before importing transformers
 
 import re
 import matplotlib.pyplot as plt
@@ -12,12 +12,12 @@ import numpy as np
 import pandas as pd
 
 # --- Pipeline model packages
-import torch
+# import torch - Don't need if using HF API
 from datasets import Dataset
 # from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 # Patch torch bug that sometimes affects Streamlit
-torch.classes.__path__ = []
+# torch.classes.__path__ = []
 
 # Used to run on Streamlit
 import streamlit as st
@@ -65,6 +65,7 @@ def clean_tweet(tweet):
 def load_sentiment_pipelines():
     """Initialize HF Inference API clients for sentiment analysis."""
     try:
+
         roberta_api = InferenceApi(
             repo_id="cardiffnlp/twitter-roberta-base-sentiment-latest",
             token=hf_api_token,
@@ -75,13 +76,19 @@ def load_sentiment_pipelines():
             token=hf_api_token,
             # task="sentiment-analysis"
         )
-        return roberta_api, distilbert_api
+        siebert_api = InferenceApi(
+        repo_id="siebert/sentiment-roberta-large-english",
+        token=hf_api_token
+        )
+
+        return roberta_api, distilbert_api, siebert_api
+    
     except Exception as e:
         st.error(f"Failed to initialize HF Inference API: {e}")
-        return None, None
+        return None, None, None
 
 # Load both clients once (cached)
-roberta_pipe, distilbert_pipe = load_sentiment_pipelines()
+roberta_pipe, distilbert_pipe, siebert_pipe = load_sentiment_pipelines()
 
 # Global counter for tracking batch number
 batch_counter = {"i": 0}
@@ -89,11 +96,11 @@ batch_counter = {"i": 0}
 # ---------------------------
 # Perform batch sentiment analysis using both clients and ensemble logic
 # ---------------------------
-def analyze_rd(batch, roberta_pipe, distilbert_pipe):
+def analyze_rds(batch, roberta_pipe, distilbert_pipe, siebert_pipe):
     """Runs the two inference clients on a batch and applies ensemble voting."""
+
     print(f"Processing batch #{batch_counter['i']}")
     batch_counter["i"] += 1
-
 
     tweets = batch["cleaned_tweets"]
 
@@ -101,6 +108,7 @@ def analyze_rd(batch, roberta_pipe, distilbert_pipe):
     # If each item is itself a single‑element list, unwrap it:
     raw_roberta = roberta_pipe(inputs=tweets, params={"top_k": 1})
     raw_distilbert = distilbert_pipe(inputs=tweets, params={"top_k": 1})
+    raw_siebert = siebert_pipe(inputs=tweets, params={"top_k": 1})
     
     # Inference API may already flatten to dicts. To be safe:
     results_roberta = [r[0] if isinstance(r, list) 
@@ -108,6 +116,9 @@ def analyze_rd(batch, roberta_pipe, distilbert_pipe):
     
     results_distilbert = [r[0] if isinstance(r, list) 
                           else r for r in raw_distilbert]
+    
+    results_siebert = [r[0] if isinstance(r, list) 
+                       else r for r in raw_siebert]
 
     ensemble_sentiments, ensemble_scores, ensemble_votes = [], [], []
 
@@ -115,6 +126,7 @@ def analyze_rd(batch, roberta_pipe, distilbert_pipe):
         # Uppercase labels for consistency
         label_roberta = results_roberta[i]["label"].upper()
         label_distilbert = results_distilbert[i]["label"].upper()
+        label_siebert = results_siebert[i]["label"].upper()
 
         # Skip instances where RoBERTa yields NEUTRAL
         if label_roberta == "NEUTRAL":
@@ -123,24 +135,32 @@ def analyze_rd(batch, roberta_pipe, distilbert_pipe):
             ensemble_votes.append(None)
             continue
 
-        # Majority vote (favor RoBERTa in a tie)
-        preds = [label_roberta, label_distilbert]
+        # Majority vote min 2-of-3
+        preds = [label_roberta, label_distilbert, label_siebert]
         vote = max(set(preds), key=preds.count)
 
         # Retrieve corresponding confidence scores
         score_roberta = results_roberta[i]["score"]
         score_distilbert = results_distilbert[i]["score"]
+        score_siebert = results_siebert[i]["score"]
+
+        scores = [score_roberta, score_distilbert, score_siebert]
+
         maj_scores = [
-            s for s, lbl in zip([score_roberta, score_distilbert], preds)
-            if lbl == vote
+            score for score, lbl in zip(scores, preds) if lbl == vote
         ]
 
-        # Append ensemble outputs
+        # Append ensemble votes
         ensemble_sentiments.append(vote)
-        ensemble_scores.append(sum(maj_scores) / len(maj_scores))
+        
+        # Avg sentiment score across winning models
+        ensemble_scores.append(sum(maj_scores) / len(maj_scores)) 
+
+        # Label which two or three models agree
         ensemble_votes.append(
-            ("R" if label_roberta == vote else "")
-            + ("D" if label_distilbert == vote else "")
+            ("R" if label_roberta == vote else "") +
+            ("D" if label_distilbert == vote else "") +
+            ("S" if label_siebert == vote else "")
         )
 
     return {
@@ -271,8 +291,11 @@ def main():
         user_USAonly["cleaned_tweets"] = user_USAonly["tweet"].apply(clean_tweet)
         st.session_state.user_USAonly = user_USAonly
 
+        # Minimize relevant columsn to keep
+        keepcols = ["cleaned_tweets", "candidate"]
+
         st.write("### Sampled Data Preview")
-        st.dataframe(user_USAonly[["cleaned_tweets","candidate"]].sample(10))
+        st.dataframe(user_USAonly[keepcols].sample(10))
 
         # Sampling control
         sample_pct = st.number_input(
@@ -284,8 +307,8 @@ def main():
             st.error("Sample percent must be between 1 and 100.")
             return
           
-        sample_df = user_USAonly.sample(frac=(sample_pct/100), random_state=42)
-      
+        sample_df = user_USAonly[keepcols].sample(frac=(sample_pct/100), random_state=42)
+ 
         st.session_state.tweetUSA_dataset = Dataset.from_pandas(sample_df)
 
         # Trigger sentiment analysis
@@ -297,9 +320,10 @@ def main():
 
                 result_dataset = \
                     st.session_state.tweetUSA_dataset.map(
-                    lambda batch: analyze_rd(batch, 
+                    lambda batch: analyze_rds(batch, 
                                              roberta_pipe, 
-                                             distilbert_pipe),
+                                             distilbert_pipe,
+                                             siebert_pipe),
                     batched=True, 
                     batch_size=BATCH_SIZE
                 )
