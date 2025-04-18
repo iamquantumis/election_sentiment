@@ -94,10 +94,20 @@ def analyze_rd(batch, roberta_pipe, distilbert_pipe):
     print(f"Processing batch #{batch_counter['i']}")
     batch_counter["i"] += 1
 
-    # Call HF Inference API for the cleaned tweets batch
+
     tweets = batch["cleaned_tweets"]
-    results_roberta = roberta_pipe(inputs=tweets)
-    results_distilbert = distilbert_pipe(inputs=tweets)
+
+    # Call HF Inference API for the cleaned tweets batch
+    # If each item is itself a single‑element list, unwrap it:
+    raw_roberta = roberta_pipe(inputs=tweets, parameters={"top_k": 1})
+    raw_distilbert = distilbert_pipe(inputs=tweets, parameters={"top_k": 1})
+    
+    # Inference API may already flatten to dicts. To be safe:
+    results_roberta = [r[0] if isinstance(r, list) 
+                       else r for r in raw_roberta]
+    
+    results_distilbert = [r[0] if isinstance(r, list) 
+                          else r for r in raw_distilbert]
 
     ensemble_sentiments, ensemble_scores, ensemble_votes = [], [], []
 
