@@ -92,7 +92,7 @@ def load_sentiment_pipelines():
 roberta_pipe, distilbert_pipe, siebert_pipe = load_sentiment_pipelines()
 
 # Global counter for tracking batch number
-batch_counter = {"i": 0}
+# batch_counter = {"i": 0}
 
 # ---------------------------
 # Perform batch sentiment analysis using both clients and ensemble logic
@@ -100,8 +100,8 @@ batch_counter = {"i": 0}
 def analyze_rds(batch, roberta_pipe, distilbert_pipe, siebert_pipe):
     """Runs the two inference clients on a batch and applies ensemble voting."""
 
-    print(f"Processing batch #{batch_counter['i']}")
-    batch_counter["i"] += 1
+    # print(f"Processing batch #{batch_counter['i']}")
+    # batch_counter["i"] += 1
 
     tweets = batch["cleaned_tweets"]
 
