@@ -293,8 +293,8 @@ def main():
             with st.spinner("Running sentiment analysis..."):
                 
                 # Setting "optimal" batch size to reduce cost
-                BATCH_SIZE = 15
-                
+                BATCH_SIZE = 200
+
                 result_dataset = \
                     st.session_state.tweetUSA_dataset.map(
                     lambda batch: analyze_rd(batch, 
