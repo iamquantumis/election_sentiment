@@ -68,12 +68,12 @@ def load_sentiment_pipelines():
         roberta_api = InferenceApi(
             repo_id="cardiffnlp/twitter-roberta-base-sentiment-latest",
             token=hf_api_token,
-            task="sentiment-analysis"
+            # task="sentiment-analysis"
         )
         distilbert_api = InferenceApi(
             repo_id="distilbert-base-uncased-finetuned-sst-2-english",
             token=hf_api_token,
-            task="sentiment-analysis"
+            # task="sentiment-analysis"
         )
         return roberta_api, distilbert_api
     except Exception as e:
