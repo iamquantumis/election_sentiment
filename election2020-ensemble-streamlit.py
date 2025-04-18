@@ -176,9 +176,12 @@ def main():
     st.title("Ensemble Sentiment Analysis for Two Election Candidates")
     st.write(
         """
+        Can we predict the likely outcome of elections by performing sentiment analysis
+        on the tweets about each candidate?
+        
         Use the sample data or upload two CSV files—one per candidate. The app merges
         tweets, cleans them, and sends batches to Hugging Face Inference API for
-        sentiment analysis. Results are ensembled across RoBERTa and DistilBERT.
+        sentiment analysis. Results are ensembled across RoBERTa, DistilBERT and SieBERT.
         **Note:** Each CSV must include a `tweet` column.
         """
     )
