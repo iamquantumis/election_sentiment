@@ -182,8 +182,8 @@ def main():
         Can we predict the likely outcome of elections by performing sentiment analysis
         on the tweets about each candidate?
         
-        Use the sample data or upload two CSV files—one per candidate. The app merges
-        tweets, cleans them, and sends batches to Hugging Face Inference API for
+        Use the sample data from 2020 US Elections or upload two CSV files—one per candidate. 
+        The app merges tweets, cleans them, and sends batches to Hugging Face Inference API for
         sentiment analysis. Results are ensembled across the
         [RoBERTa](https://huggingface.co/cardiffnlp/twitter-roberta-base-sentiment-latest), 
         [DistilBERT](https://huggingface.co/docs/transformers/en/model_doc/distilbert) and 
@@ -421,9 +421,10 @@ def main():
             top_positive_count     = sentiment_counts["POSITIVE"].max()
 
             win_text = textwrap.dedent(f"""
-                #### 🏆 Candidate with the highest count of **POSITIVE** tweets is:
+                ##### The candidate with the highest count of **POSITIVE** tweets is:
 
-                #### **{top_positive_candidate}** (with {top_positive_count} positive tweets)
+                #### 🏆 **{top_positive_candidate}** 🏆 
+                (having {top_positive_count} positive tweets with > {thresh}% confidence)
 
                 **NOTE:** These results are based on a small sample of tweets and are for  
                 educational and entertainment purposes only. There is no guarantee of accuracy.
@@ -433,9 +434,10 @@ def main():
             st.markdown(win_text)
 
             # st.write(f"""
-            #     ####🏆 Candidate with the highest count of POSITIVE tweets is: 
+            #     ####The candidate with the highest count of POSITIVE tweets is: 
 
-            #     ####**{top_positive_candidate}** (with {top_positive_count} positive tweets)
+            #     ####🏆 **{top_positive_candidate}** 🏆 
+            #     (having {top_positive_count} positive tweets with > {thresh} confidence)
 
             #     **NOTE:** These results are based on a small sample of tweets and are for
             #     educational and entertainment purposes only. There is no guarantee of accuracy.
