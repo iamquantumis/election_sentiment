@@ -255,7 +255,7 @@ def main():
         # Combine all US tweets
         user_USAonly = pd.concat([tweets_country, loc_states, loc_usa], ignore_index=True)
         
-        user_USAonly["country"].fillna("US", inplace=True)
+        user_USAonly["country"] = user_USAonly["country"].fillna("US")
 
         # Clean tweets
         user_USAonly["cleaned_tweets"] = user_USAonly["tweet"].apply(clean_tweet)
