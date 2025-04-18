@@ -255,7 +255,6 @@ def main():
         # Create cleaned tweets column
         user_USAonly['cleaned_tweets'] = user_USAonly['tweet'].apply(clean_tweet)
 
-
         st.session_state.user_USAonly = user_USAonly
 
         st.write("### Sampled Merged Data Preview")
@@ -277,7 +276,6 @@ def main():
                 frac=(samplesize / 100), random_state=42
             )
 
-            st.dataframe(sampled_df.sample(10))
             st.session_state.tweetUSA_dataset = Dataset.from_pandas(sampled_df)
 
             if st.button("Run Sentiment Analysis"):
