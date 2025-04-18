@@ -14,7 +14,7 @@ import pandas as pd
 # --- Pipeline model packages
 import torch
 from datasets import Dataset
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+# from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 # Patch torch bug that sometimes affects Streamlit
 torch.classes.__path__ = []
