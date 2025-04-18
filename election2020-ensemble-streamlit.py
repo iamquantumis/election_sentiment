@@ -174,7 +174,8 @@ def analyze_rds(batch, roberta_pipe, distilbert_pipe, siebert_pipe):
 # ---------------------------
 def main():
     st.title("Ensemble Sentiment Analysis for Two Election Candidates")
-    st.image("support/vote-scrabble.jpg", caption="Image licensed with [Unsplash](https://unsplash.com)")
+    st.image("support/vote-scrabble.jpg",
+             caption="Image licensed with [Unsplash](https://unsplash.com)")
     st.write(
         """
         Can we predict the likely outcome of elections by performing sentiment analysis
@@ -200,7 +201,7 @@ def main():
         if key not in st.session_state:
             st.session_state[key] = None
 
-    st.write("### Step 1: Choose Data Source")
+    st.write("#### Step 1: Choose Data Source")
     data_source = st.radio(
         "Choose data source:", ["Use included sample data", 
                                 "Upload your own CSV files"]
@@ -302,10 +303,11 @@ def main():
         # Minimize relevant columsn to keep
         keepcols = ["cleaned_tweets", "candidate"]
 
-        st.write("### Sampled Data Preview")
+        st.write("#### Sampled Data Preview")
         st.dataframe(user_USAonly[keepcols].sample(10))
 
         # Sampling control
+        st.write("#### Step 2: Choose Sample Size")
         sample_pct = st.number_input(
             "Data Sample Size Percent (100 = full dataset)",
             min_value=1, max_value=100, value=1, step=1, key="samplesize"
@@ -356,7 +358,7 @@ def main():
 
         st.write(
             """
-            ### Chart of Sentiment Count by Candidate
+            #### Chart of Sentiment Count by Candidate
             Each sentiment has an associated confidence score. Use the slider below
             to filter out low-confidence predictions.
             """
@@ -412,6 +414,17 @@ def main():
 
             # Display the plot in Streamlit
             st.pyplot(fig)
+
+            # Get the "Winning" Candidate
+            top_positive_candidate = sentiment_counts["POSITIVE"].idxmax()
+            top_positive_count     = sentiment_counts["POSITIVE"].max()
+
+            st.write(
+                f"####🏆 Candidate with the highest count of POSITIVE tweets is: "
+                f"####**{top_positive_candidate}** (with {top_positive_count} positive tweets)"
+                f"**NOTE:** These results are based on a small sample of tweets and are for"
+                f"educational and entertainment purposes only. There is no guarantee of accuracy."
+            )
 
 if __name__ == "__main__":
     main()
