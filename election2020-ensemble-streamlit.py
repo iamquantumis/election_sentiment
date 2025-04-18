@@ -323,6 +323,7 @@ def main():
         st.session_state.tweetUSA_dataset = Dataset.from_pandas(sample_df)
 
         # Trigger sentiment analysis
+        st.write("#### Step 3: Run the Analyzer")
         if st.button("Run Sentiment Analysis"):
             with st.spinner("Running sentiment analysis..."):
                 
