@@ -424,7 +424,7 @@ def main():
                 ##### The candidate with the highest count of **POSITIVE** tweets is:
 
                 #### 🏆 **{top_positive_candidate}** 🏆 
-                (having {top_positive_count} positive tweets with > {thresh}% confidence)
+                (having {top_positive_count} positive tweets with > {min_conf}% confidence)
 
                 **NOTE:** These results are based on a small sample of tweets and are for  
                 educational and entertainment purposes only. There is no guarantee of accuracy.
@@ -432,16 +432,6 @@ def main():
             )
 
             st.markdown(win_text)
-
-            # st.write(f"""
-            #     ####The candidate with the highest count of POSITIVE tweets is: 
-
-            #     ####🏆 **{top_positive_candidate}** 🏆 
-            #     (having {top_positive_count} positive tweets with > {thresh} confidence)
-
-            #     **NOTE:** These results are based on a small sample of tweets and are for
-            #     educational and entertainment purposes only. There is no guarantee of accuracy.
-            #     """)
 
 if __name__ == "__main__":
     main()
