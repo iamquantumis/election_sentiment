@@ -416,14 +416,18 @@ def main():
             st.pyplot(fig)
 
             # Get the "Winning" Candidate
-            top_positive_candidate = sentiment_counts["POSITIVE"].idxmax()
+            top_positive_candidate = sentiment_counts["POSITIVE"].idxmax().capitalize()
             top_positive_count     = sentiment_counts["POSITIVE"].max()
 
-            st.write(
-                f"####🏆 Candidate with the highest count of POSITIVE tweets is: "
-                f"####**{top_positive_candidate}** (with {top_positive_count} positive tweets)"
-                f"**NOTE:** These results are based on a small sample of tweets and are for"
-                f"educational and entertainment purposes only. There is no guarantee of accuracy."
+            st.write(f\
+                """
+                ####🏆 Candidate with the highest count of POSITIVE tweets is: 
+
+                ####**{top_positive_candidate}** (with {top_positive_count} positive tweets)
+
+                **NOTE:** These results are based on a small sample of tweets and are for
+                educational and entertainment purposes only. There is no guarantee of accuracy.
+                """
             )
 
 if __name__ == "__main__":
