@@ -1,36 +1,43 @@
-import pandas as pd
-import numpy as np
+# Ensemble Sentiment Analysis for 2020 US Election Tweets
+# Updated to use st.session_state to preserve state across reruns in Streamlit
+# TRANSFORMERS_NO_TF disables TensorFlow backend to avoid compatibility issues
+# with Keras 3 when using models like DistilBERT that may trigger TF imports
+
+import os
+os.environ["TRANSFORMERS_NO_TF"] = "1"  # MUST be set before importing transformers
+
 import re
 import matplotlib.pyplot as plt
-from matplotlib.patches import Patch
+import numpy as np
+import pandas as pd
 
-# Pipeline model packages
-import os
-os.environ["TRANSFORMERS_NO_TF"] = "1"  # 💥 Must come before importing transformers
-
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from datasets import Dataset
-# import tensorflow
+# --- Pipeline model packages
 import torch
-# Prevent Streamlit’s watcher from iterating torch.classes.__path__
+from datasets import Dataset
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+# Patch torch bug that sometimes affects Streamlit
 torch.classes.__path__ = []
 
 # Used to run on Streamlit
 import streamlit as st
 
 # ---------------------------
-# Function to clean tweets
+# Clean tweet text using basic regex and ASCII filtering
+# ---------------------------
 def clean_tweet(tweet):
-    tweet = re.sub(r'http\S+', '', tweet)           # Remove URLs
-    tweet = re.sub(r'@\w+', '', tweet)               # Remove mentions (@username)
-    tweet = re.sub(r'#', '', tweet)                  # Remove the '#' symbol
-    tweet = re.sub(r'\d+', '', tweet)                # Remove numbers
-    tweet = tweet.encode('ascii', 'ignore').decode('ascii')  # Remove non-ASCII characters
-    tweet = tweet.strip()                            # Remove leading/trailing spaces
+    tweet = re.sub(r"http\S+", "", tweet)
+    tweet = re.sub(r"@\w+", "", tweet)
+    tweet = re.sub(r"#", "", tweet)
+    tweet = re.sub(r"\d+", "", tweet)
+    tweet = tweet.encode("ascii", "ignore").decode("ascii")
+    tweet = tweet.strip()
     return tweet
 
+
 # ---------------------------
-# Cache the loading of sentiment models for efficiency
+# Load two sentiment analysis models: RoBERTa and DistilBERT
+# ---------------------------
 @st.cache_resource
 def load_sentiment_pipelines():
     try:
@@ -40,17 +47,10 @@ def load_sentiment_pipelines():
         distilbert_model = "distilbert-base-uncased-finetuned-sst-2-english"
 
         roberta_pipe = pipeline(
-            "sentiment-analysis",
-            model=roberta_model,
-            tokenizer=roberta_model,
-            device=-1
+            "sentiment-analysis", model=roberta_model, tokenizer=roberta_model, device=-1
         )
-
         distilbert_pipe = pipeline(
-            "sentiment-analysis",
-            model=distilbert_model,
-            tokenizer=distilbert_model,
-            device=-1
+            "sentiment-analysis", model=distilbert_model, tokenizer=distilbert_model, device=-1
         )
 
         print("✅ Loaded RoBERTa and DistilBERT sentiment models.")
@@ -59,187 +59,68 @@ def load_sentiment_pipelines():
     except Exception as e:
         print(f"❌ Failed to load sentiment models: {e}")
         return None, None
-    
-# --- Assign the model variables
+
+
+# Load both pipelines once (cached)
 roberta_pipe, distilbert_pipe = load_sentiment_pipelines()
 
-# ---------------------------
-# Ensemble sentiment analysis function
-
+# Global counter for tracking batch number
 batch_counter = {"i": 0}
 
-def analyze_roberta(batch):
-
-    # print to console (stdout) for each batch
-    print(f"Processing batch #{batch_counter['i']}")
-    batch_counter["i"] += 1
-
-    try:
-
-        from transformers import pipeline
-        results = sentiment_roberta(batch["cleaned_tweets"])
-
-        sentiments = []
-        scores = []
-
-        for result in results:
-            label = result["label"].upper()
-            score = result["score"]
-
-            # SieBERT only returns POSITIVE or NEGATIVE
-            sentiments.append(label)
-            scores.append(score)
-
-        return {
-            "ensemble_sentiment": sentiments,
-            "ensemble_score": scores,
-            "ensemble_votes": ["R"] * len(sentiments)
-        }
-
-    except Exception as e:
-        print(f"❌ Error during batch sentiment analysis: {e}")
-        return {
-            "ensemble_sentiment": [None] * len(batch["cleaned_tweets"]),
-            "ensemble_score": [None] * len(batch["cleaned_tweets"]),
-            "ensemble_votes": [None] * len(batch["cleaned_tweets"])
-        }
-
+# ---------------------------
+# Perform batch sentiment analysis using both models and ensemble logic
+# ---------------------------
 def analyze_rd(batch, roberta_pipe, distilbert_pipe):
-
     print(f"Processing batch #{batch_counter['i']}")
     batch_counter["i"] += 1
 
-    # Run batch inference
+    # Run inference for each model
     results_roberta = roberta_pipe(batch["cleaned_tweets"])
     results_distilbert = distilbert_pipe(batch["cleaned_tweets"])
 
-    ensemble_sentiments = []
-    ensemble_scores = []
-    ensemble_votes = []
+    ensemble_sentiments, ensemble_scores, ensemble_votes = [], [], []
 
     for i in range(len(batch["cleaned_tweets"])):
         label_roberta = results_roberta[i]["label"].upper()
         label_distilbert = results_distilbert[i]["label"].upper()
 
-        # Skip if RoBERTa is NEUTRAL
+        # Filter out tweets where RoBERTa is NEUTRAL
         if label_roberta == "NEUTRAL":
             ensemble_sentiments.append(None)
             ensemble_scores.append(None)
             ensemble_votes.append(None)
             continue
 
-        # Collect predictions
+        # Majority vote (favor RoBERTa in tie)
         predictions = [label_roberta, label_distilbert]
-
-        # Majority vote (favor RoBERTa if tied)
         vote = max(set(predictions), key=predictions.count)
 
-        final_sentiment = vote
-
-        # Score aggregation for agreeing models
         score_roberta = results_roberta[i]["score"]
         score_distilbert = results_distilbert[i]["score"]
-
-        scores = [score_roberta, score_distilbert]
 
         maj_scores = [
-            score for score, label in zip(scores, predictions) if label == vote
+            score
+            for score, label in zip([score_roberta, score_distilbert], predictions)
+            if label == vote
         ]
 
-        ensemble_score = sum(maj_scores) / len(maj_scores)
-
-        # Record which models voted for the majority
-        vote_models = []
-        if label_roberta == vote:
-            vote_models.append("R")
-        if label_distilbert == vote:
-            vote_models.append("D")
-
-        voting_set = ''.join(vote_models)
-
-        ensemble_sentiments.append(final_sentiment)
-        ensemble_scores.append(ensemble_score)
-        ensemble_votes.append(voting_set)
+        ensemble_sentiments.append(vote)
+        ensemble_scores.append(sum(maj_scores) / len(maj_scores))
+        ensemble_votes.append(
+            ("R" if label_roberta == vote else "")
+            + ("D" if label_distilbert == vote else "")
+        )
 
     return {
         "ensemble_sentiment": ensemble_sentiments,
         "ensemble_score": ensemble_scores,
-        "ensemble_votes": ensemble_votes
-    }
-
-def analyze_ensemble(batch):
-
-    # print to console (stdout) for each batch
-    print(f"Processing batch #{batch_counter['i']}")
-    batch_counter["i"] += 1
-
-    # Run batch inference for each model
-    results_roberta = roberta_pipe(batch["cleaned_tweets"])
-    results_distilbert = distilbert_pipe(batch["cleaned_tweets"])
-    results_siebert = siebert_pipe(batch["cleaned_tweets"])
-    
-    ensemble_sentiments = []
-    ensemble_scores = []
-    ensemble_votes = []
-    
-    for i in range(len(batch["cleaned_tweets"])):
-        label_roberta = results_roberta[i]["label"].upper()
-        label_distilbert = results_distilbert[i]["label"].upper()
-        label_siebert = results_siebert[i]["label"].upper()
-
-        # Filter out tweets where roBERTa returns NEUTRAL
-        if label_roberta == "NEUTRAL":
-            ensemble_sentiments.append(None)
-            ensemble_scores.append(None)
-            ensemble_votes.append(None)
-            continue
-
-        # Gather predictions from all three models    
-        predictions = [label_roberta, label_distilbert, label_siebert]
-
-        # Majority vote logic: vote is the label that appears most
-        vote = max(set(predictions), key=predictions.count)
-
-        # For pure binary predictions (POSITIVE/NEGATIVE) this will 
-        # always yield at least a 2-of-3 majority.
-        final_sentiment = vote
-        
-        # Compute ensemble scores: average the scores of the models that agree with the majority vote.
-        score_roberta = results_roberta[i]["score"]
-        score_distilbert = results_distilbert[i]["score"]
-        score_siebert = results_siebert[i]["score"]
-
-        scores = [score_roberta, score_distilbert, score_siebert]
-
-        maj_scores = [score for score, 
-                      lab in zip(scores, predictions) if lab == vote]
-
-        ensemble_score = sum(maj_scores) / len(maj_scores)
-
-        # Determine which models contributed to the majority vote by concatenating their initials.
-        vote_models = []
-        if label_roberta == vote:
-            vote_models.append("R")
-        if label_distilbert == vote:
-            vote_models.append("D")
-        if label_siebert == vote:
-            vote_models.append("S")
-        voting_set = ''.join(vote_models)
-        
-        # Append the results to our lists
-        ensemble_sentiments.append(final_sentiment)
-        ensemble_scores.append(ensemble_score)
-        ensemble_votes.append(voting_set)
-    
-    return {
-        "ensemble_sentiment": ensemble_sentiments,
-        "ensemble_score": ensemble_scores,
-        "ensemble_votes": ensemble_votes
+        "ensemble_votes": ensemble_votes,
     }
 
 
 # ---------------------------
-# Main Streamlit App Function
+# Main Streamlit App
+# ---------------------------
 def main():
     st.title("Ensemble Sentiment Analysis for Two Election Candidates")
     st.write(
@@ -251,86 +132,108 @@ def main():
         **Note:** Each CSV file must include a column named `tweet`.
         """
     )
-    
-    # Let user pick data source
-    data_source = st.radio("Choose data source:", ["Use included sample data", "Upload your own CSV files"])
+
+    # Save session state of DFs so they don't reload after every user interaction
+    for key in ["merged_df", "user_USAonly", 
+                "tweetUSA_dataset", "sentiment_results"]:
+        if key not in st.session_state:
+            st.session_state[key] = None
+
+    st.write("Choose to use the sample data or upload your own...")
+
+    data_source = st.radio(
+        "Choose data source:", ["Use included sample data", 
+                                "Upload your own CSV files"]
+    )
 
     # Use included data samples of Trump and Biden Tweets
     if data_source == "Use included sample data":
+
         candidate1_name = "biden"
         candidate2_name = "trump"
 
-        with st.spinner("Loading sample Tweets about Joe Biden and Donald Trump..."):
-            try:
-                cand1_df = pd.read_csv("input/hashtag_bidensamp.csv", lineterminator="\n")
-                cand2_df = pd.read_csv("input/hashtag_trumpsamp.csv", lineterminator="\n")
-                st.success("Sample data loaded.")
-            except Exception as e:
-                st.error(f"Error loading sample data: {e}")
-                return
-    
+        if st.button("Load Sample Data"):
+
+            with st.spinner("Loading sample Tweets about Joe Biden and Donald Trump..."):
+                
+                try:
+                    df1 = pd.read_csv("input/hashtag_bidensamp.csv", 
+                                      lineterminator="\n")
+                    df2 = pd.read_csv("input/hashtag_trumpsamp.csv", 
+                                      lineterminator="\n")
+
+                    df1["candidate"] = candidate1_name
+                    df2["candidate"] = candidate2_name
+
+                    st.session_state.merged_df = pd.concat([df1, df2], 
+                                                           ignore_index=True)
+                    st.success("Sample data loaded.")
+
+                except Exception as e:
+                    st.error(f"Error loading sample data: {e}")
+
+    # Otherwise use user-provided CSV Twitter datasets
     else:
-        # Step 2 – Upload user files
         col1, col2 = st.columns(2)
 
         with col1:
-            candidate1_file = st.file_uploader("Upload CSV for Candidate 1", type="csv")
+            candidate1_file = st.file_uploader("Upload CSV for Candidate 1", 
+                                               type="csv")
             candidate1_name = st.text_input("Candidate 1 Name")
+
         with col2:
-            candidate2_file = st.file_uploader("Upload CSV for Candidate 2", type="csv")
+            candidate2_file = st.file_uploader("Upload CSV for Candidate 2", 
+                                               type="csv")
             candidate2_name = st.text_input("Candidate 2 Name")
 
-        if candidate1_file and candidate2_file and candidate1_name and candidate2_name:
+        if candidate1_file and candidate2_file and\
+              candidate1_name and candidate2_name:
             try:
-                cand1_df = pd.read_csv(candidate1_file, 
-                                       index_col=0 if candidate1_file.name.endswith('.csv') else None)
-                cand2_df = pd.read_csv(candidate2_file, 
-                                       index_col=0 if candidate2_file.name.endswith('.csv') else None)
-                
-                # st.success("User-uploaded data loaded.")
+                df1 = pd.read_csv(candidate1_file, index_col=0)
+                df2 = pd.read_csv(candidate2_file, index_col=0)
+
+                df1["candidate"] = candidate1_name
+                df2["candidate"] = candidate2_name
+
+                st.session_state.merged_df = pd.concat([df1, df2], 
+                                                       ignore_index=True)
+                st.success("User data uploaded.")
+
             except Exception as e:
                 st.error(f"Error reading uploaded CSVs: {e}")
-                return
+
         else:
             st.warning("Please upload CSV files and provide names for both candidates.")
             return
 
- 
-    if cand1_df is not None and cand2_df is not None:
-        if "tweet" not in cand1_df.columns or "tweet" not in cand2_df.columns:
-            st.error("Both datasets must contain a 'tweet' column.")
-            return
-
-        # Assign candidate names
-        cand1_df['candidate'] = candidate1_name
-        cand2_df['candidate'] = candidate2_name
-
-        # Merge the two dataframes
-        merged_df = pd.concat([cand1_df, cand2_df], ignore_index=True)
-
-        # st.write("### Sampled Merged Data Preview")
-        # st.dataframe(merged_df.sample(10))
-
+    if st.session_state.merged_df is not None:
+        df = st.session_state.merged_df.copy()
+        
         # Shorten any United States (/of America) to simply "US"
         # Check if "country" column exists
-        if "country" in merged_df.columns:
-            merged_df['country'] = merged_df['country'].replace({'United States of America': "US", 'United States': "US"})
-            tweets_cntryUSA = merged_df[merged_df["country"] == "US"]
-        
-        # If not, force all tweets to originate from the "US"
-        else:
-            merged_df['country'] = "US"
+        if "country" not in df.columns:
+            df['country'] = "US"
+
+        df['country'] = df['country'].replace(
+            {'United States of America': "US", 'United States': "US"}
+        )
+
+        tweets_cntryUSA = df[df["country"] == "US"]
 
         # Check to see where user_location is available, but no country specified
-        tweets_loconly = merged_df[merged_df['country'].isnull() & 
-                                    merged_df['user_location'].notnull()]
-        
-        # Provide list of US State abbreviations to parse user_location
-        statelist = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', 'GA', 
-                    'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 
-                    'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 
-                    'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 
-                    'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'USA']
+        if "user_location" not in df.columns:
+            df['user_location'] = "USA"
+
+        tweets_loconly = df[df['country'].isnull() & 
+                            df['user_location'].notnull()]
+
+        statelist = [
+            "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA",
+            "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA",
+            "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY",
+            "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX",
+            "UT", "VT", "VA", "WA", "WV", "WI", "WY", "USA"
+        ]
         
         # Filter the rows that have country as null but location as filled for those
         # that have the last two characters matching a State abbreviation
@@ -344,7 +247,7 @@ def main():
         # Combine DFs with "US" country, and those with no country but US locations.
         user_USAonly = pd.concat([tweets_cntryUSA, 
                                     user_states, 
-                                    user_stateUSA]).reset_index(drop=True)
+                                    user_stateUSA], ignore_index=True)
 
         # Make sure to fill null 'country' fields with "US"
         user_USAonly['country'] = user_USAonly['country'].fillna(value="US")
@@ -352,99 +255,112 @@ def main():
         # Create cleaned tweets column
         user_USAonly['cleaned_tweets'] = user_USAonly['tweet'].apply(clean_tweet)
 
-        # Have option to take only sample of data (runs faster)
-        samplesize = st.number_input("Data Sample Size Percent (100 = full dataset)", 
-                                     key="samplesize")
-        if samplesize < 1 or samplesize > 100:
-            st.error("Value must be between 1 and 100 inclusive.")
-            return
-        
-        # user_USAsample = user_USAonly.sample(frac=(samplesize/100), random_state=42)
+
+        st.session_state.user_USAonly = user_USAonly
 
         st.write("### Sampled Merged Data Preview")
-        st.dataframe(user_USAonly.sample(10))
+        st.dataframe(user_USAonly['cleaned_tweets', 'candidate'].sample(10))
 
-        # Convert pandas DataFrame into Hugging Face Dataset
-        tweetUSA_dataset = Dataset.from_pandas(user_USAonly.sample(frac=(samplesize/100), 
-                                                                   random_state=42))
+        # Have option to take only sample of data (runs faster)
+        samplesize = st.number_input(
+            "Data Sample Size Percent (100 = full dataset)",
+            min_value=1,
+            max_value=100,
+            value=1,
+            step=1,
+            key="samplesize"
+        )
 
-        if st.button("Run Sentiment Analysis"):
-            with st.spinner("Loading models and running sentiment analysis..."):
+        if 1 <= samplesize <= 100:
 
-                if roberta_pipe is None or distilbert_pipe is None:
-                    st.error("Failed to load models.")
-                    st.stop()
-
-                BATCH_SIZE = 2 # Low size due to resource constraints
-                result_dataset_showmodels = tweetUSA_dataset.map(
-                    lambda batch: analyze_rd(batch, roberta_pipe, distilbert_pipe),
-                    batched=True,
-                    batch_size=BATCH_SIZE  # Keep small for CPU stability
-                )
-            st.success("Analysis complete!")
-            st.write("### Sentiment Analysis Results")
-
-            # Convert back to pandas DataFrame for data analysis
-            tweetUSA_sentiments_showmodels = result_dataset_showmodels.to_pandas()
-
-            # Remove any rows that were previously judged as neutral, now None or NaN
-            tweetUSA_sentiments_modelsclean = tweetUSA_sentiments_showmodels\
-                .dropna(subset=['ensemble_score'])
-
-            # Provide download option for the results
-            csv_result = tweetUSA_sentiments_modelsclean.to_csv(index=False).encode("utf-8")
-            st.download_button(
-                label="Download Results as CSV",
-                data=csv_result,
-                file_name='sentiment_analysis_results.csv',
-                mime='text/csv'
+            sampled_df = user_USAonly.sample(
+                frac=(samplesize / 100), random_state=42
             )
 
-            if tweetUSA_sentiments_modelsclean.empty:
-                st.warning("No tweets to analyze after filtering.")
-            else:
-                # Let's chart the data by tweet count
-                st.write("### Sentiment Count by Candidate")
+            st.dataframe(sampled_df.sample(10))
+            st.session_state.tweetUSA_dataset = Dataset.from_pandas(sampled_df)
 
-                confidence = 0.5
-                sentiment_counts = (tweetUSA_sentiments_modelsclean[
-                    tweetUSA_sentiments_modelsclean['ensemble_score'] > confidence]\
-                                .groupby('candidate')['ensemble_sentiment']\
-                                .value_counts()\
-                                .unstack(fill_value=0))
+            if st.button("Run Sentiment Analysis"):
+                with st.spinner("Running sentiment analysis..."):
+                    result_dataset = st.session_state.tweetUSA_dataset.map(
+                        lambda batch: analyze_rd(batch, roberta_pipe, distilbert_pipe),
+                        batched=True,
+                        batch_size=2,
+                    )
 
-                # Create the plot
-                fig = plt.figure(figsize=(12, 6))
+                    # Convert back to pandas DataFrame for data analysis
+                    # Remove any rows that were previously judged as neutral
+                    df_results = result_dataset.to_pandas().dropna(
+                        subset=["ensemble_score"]
+                    )
 
-                # Get the candidates and sentiments
-                candidates = sentiment_counts.index
-                sentiments = sentiment_counts.columns
-                n_sentiments = len(sentiments)
-                bar_width = 0.25  # Width of each bar
+                    st.session_state.sentiment_results = df_results
+                    st.success("Analysis complete!")
+        else:
+            st.error("Value must be between 1 and 100 inclusive.")
+            return
 
-                # Set the positions of the bars
-                x = np.arange(len(candidates))
+        if st.session_state.sentiment_results is not None:
+            
+            df_results = st.session_state.sentiment_results
+            
+            # Provide download option for the results
+            st.download_button(
+                "Download Results as CSV",
+                df_results.to_csv(index=False),
+                "sentiment_analysis_results.csv",
+            )
 
-                # Plot bars for each sentiment
-                for i, sentiment in enumerate(sentiments):
-                    plt.bar(x + i * bar_width, 
-                            sentiment_counts[sentiment], 
-                            bar_width, 
-                            label=sentiment)
+            st.write("### Sentiment Count by Candidate")
 
-                # Customize the plot
-                plt.xlabel('Candidates')
-                plt.ylabel('Number of Tweets')
-                plt.title(f'Sentiment Count per Candidate (Confidence > {confidence * 100}%)')
-                plt.xticks(x + bar_width * (n_sentiments-1)/2, candidates, rotation=45)
-                plt.legend(title='Sentiment')
-                plt.grid(True, alpha=0.3)
+            confidence = 0.5
+            sentiment_counts = (
+                df_results[df_results["ensemble_score"] > confidence]
+                .groupby("candidate")["ensemble_sentiment"]
+                .value_counts()
+                .unstack(fill_value=0)
+            )
 
-                # Adjust layout to prevent label cutoff
-                plt.tight_layout()
+            # Create the plot
+            fig = plt.figure(figsize=(12, 6))
 
-                # Display the plot
-                st.pyplot(fig)
+            # Get the candidates and sentiments
+            candidates = sentiment_counts.index
+            sentiments = sentiment_counts.columns
+            bar_width = 0.25
+
+            # Set the positions of the bars
+            x = np.arange(len(candidates))
+
+            # Plot bars for each sentiment
+            for i, sentiment in enumerate(sentiments):
+                plt.bar(
+                    x + i * bar_width,
+                    sentiment_counts[sentiment],
+                    bar_width,
+                    label=sentiment,
+                )
+            
+            # Customize the plot
+            plt.xlabel("Candidates")
+            plt.ylabel("Number of Tweets")
+            plt.title(
+                f"Sentiment Count per Candidate (Confidence > {confidence * 100}%)"
+            )
+            plt.xticks(
+                x + bar_width * (len(sentiments) - 1) / 2,
+                candidates,
+                rotation=45,
+            )
+            plt.legend(title="Sentiment")
+            plt.grid(True, alpha=0.3)
+
+            # Adjust layout to prevent label cutoff
+            plt.tight_layout()
+            
+            # Display the plot in Stramlit
+            st.pyplot(fig)
+
 
 if __name__ == "__main__":
     main()
