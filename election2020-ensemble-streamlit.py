@@ -309,55 +309,75 @@ def main():
                 "sentiment_analysis_results.csv",
             )
 
-            st.write("### Sentiment Count by Candidate")
+            st.write(
+                """
+                ### Chart of Sentiment Count by Candidate
+                Every sentiment judged by the model has a sentiment score which is 
+                a percentage of "confidence" the model has about its judgment. We can
+                chart the sentiment counts using a minimum confidence score (usually 50%).
+                # """)
 
-            confidence = 0.5
-            sentiment_counts = (
-                df_results[df_results["ensemble_score"] > confidence]
-                .groupby("candidate")["ensemble_sentiment"]
-                .value_counts()
-                .unstack(fill_value=0)
-            )
-
-            # Create the plot
-            fig = plt.figure(figsize=(12, 6))
-
-            # Get the candidates and sentiments
-            candidates = sentiment_counts.index
-            sentiments = sentiment_counts.columns
-            bar_width = 0.25
-
-            # Set the positions of the bars
-            x = np.arange(len(candidates))
-
-            # Plot bars for each sentiment
-            for i, sentiment in enumerate(sentiments):
-                plt.bar(
-                    x + i * bar_width,
-                    sentiment_counts[sentiment],
-                    bar_width,
-                    label=sentiment,
+            # Form to hold slider + submit button
+            with st.form("confidence_form"):
+                min_conf_percent = st.slider(
+                    "Minimum Confidence Percent",
+                    min_value=50,
+                    max_value=100,
+                    value=50,
+                    step=1,
                 )
-            
-            # Customize the plot
-            plt.xlabel("Candidates")
-            plt.ylabel("Number of Tweets")
-            plt.title(
-                f"Sentiment Count per Candidate (Confidence > {confidence * 100}%)"
-            )
-            plt.xticks(
-                x + bar_width * (len(sentiments) - 1) / 2,
-                candidates,
-                rotation=45,
-            )
-            plt.legend(title="Sentiment")
-            plt.grid(True, alpha=0.3)
+                update = st.form_submit_button("Update Chart")
 
-            # Adjust layout to prevent label cutoff
-            plt.tight_layout()
-            
-            # Display the plot in Streamlit
-            st.pyplot(fig)
+            if update:
+                confidence = min_conf_percent / 100
+
+                # Re‑compute counts with chosen confidence
+                sentiment_counts = (
+                    df_results[df_results["ensemble_score"] > confidence]
+                    .groupby("candidate")["ensemble_sentiment"]
+                    .value_counts()
+                    .unstack(fill_value=0)
+                )
+
+                # Create the plot
+                fig = plt.figure(figsize=(12, 6))
+
+                # Get the candidates and sentiments
+                candidates = sentiment_counts.index
+                sentiments = sentiment_counts.columns
+                bar_width = 0.25
+
+                # Set the positions of the bars
+                x = np.arange(len(candidates))
+
+                # Plot bars for each sentiment
+                for i, sentiment in enumerate(sentiments):
+                    plt.bar(
+                        x + i * bar_width,
+                        sentiment_counts[sentiment],
+                        bar_width,
+                        label=sentiment,
+                    )
+                
+                # Customize the plot
+                plt.xlabel("Candidates")
+                plt.ylabel("Number of Tweets")
+                plt.title(
+                    f"Sentiment Count per Candidate (Confidence > {confidence * 100}%)"
+                )
+                plt.xticks(
+                    x + bar_width * (len(sentiments) - 1) / 2,
+                    candidates,
+                    rotation=45,
+                )
+                plt.legend(title="Sentiment")
+                plt.grid(True, alpha=0.3)
+
+                # Adjust layout to prevent label cutoff
+                plt.tight_layout()
+                
+                # Display the plot in Streamlit
+                st.pyplot(fig)
 
 
 if __name__ == "__main__":
