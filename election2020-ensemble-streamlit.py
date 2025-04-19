@@ -3,22 +3,12 @@
 # TRANSFORMERS_NO_TF disables TensorFlow backend to avoid compatibility issues
 # with Keras 3 when using models like DistilBERT that may trigger TF imports
 
-import os
-# os.environ["TRANSFORMERS_NO_TF"] = "1"  # MUST be set before importing transformers
-
+import os  # In case you have self-hosted API keys
 import re
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import textwrap
-
-# --- Pipeline model packages
-# import torch - Don't need if using HF API
-from datasets import Dataset
-# from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
-# Patch torch bug that sometimes affects Streamlit
-# torch.classes.__path__ = []
+import textwrap  # To improve Streamlit markdown
 
 # Used to run on Streamlit
 import streamlit as st
@@ -88,20 +78,14 @@ def load_sentiment_pipelines():
         st.error(f"Failed to initialize HF Inference API: {e}")
         return None, None, None
 
-# Load both clients once (cached)
+# Load inference clients once (cached)
 roberta_pipe, distilbert_pipe, siebert_pipe = load_sentiment_pipelines()
-
-# Global counter for tracking batch number
-# batch_counter = {"i": 0}
 
 # ---------------------------
 # Perform batch sentiment analysis using both clients and ensemble logic
 # ---------------------------
 def analyze_rds(batch, roberta_pipe, distilbert_pipe, siebert_pipe):
     """Runs the two inference clients on a batch and applies ensemble voting."""
-
-    # print(f"Processing batch #{batch_counter['i']}")
-    # batch_counter["i"] += 1
 
     tweets = batch["cleaned_tweets"]
 
