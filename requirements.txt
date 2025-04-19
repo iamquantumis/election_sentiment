@@ -1,11 +1,14 @@
 pandas
 numpy
 matplotlib
-transformers
 datasets
+# --- Use packages below if deploying on self-managed compute
+# Remember to import transformes and torch 
+# transformers
+# Remember to import torch
 # tensorflow-cpu==2.15.0
 # tf-keras==2.15.0
 # Tell pip where to find the CPU-only PyTorch wheels
---extra-index-url https://download.pytorch.org/whl/cpu
+# --extra-index-url https://download.pytorch.org/whl/cpu
 # Explicitly install Torch (CPU build)
-torch==2.6.0+cpu
+# torch==2.6.0+cpu
